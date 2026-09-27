@@ -691,13 +691,16 @@ function viewSensoren(app) {
       const a = e.accelerationIncludingGravity || {}, r = e.rotationRate || {};
       set("motion", bars([["x", a.x], ["y", a.y], ["z", a.z]], 20) + `<div class="muted" style="font-size:12px;margin-top:6px">Drehrate °/s</div>` + bars([["α", r.alpha], ["β", r.beta], ["γ", r.gamma]], 360));
     });
+    // Chrome liefert die Nordrichtung nur über "deviceorientationabsolute", Safari über webkitCompassHeading
+    let heading = null;
+    const onAbs = e => { if (e.alpha != null) heading = (360 - e.alpha) % 360; };
     const onOrient = throttle(e => {
       gotOrient = true;
-      const heading = e.webkitCompassHeading ?? (e.absolute && e.alpha != null ? 360 - e.alpha : null);
-      set("orient", bars([["α", e.alpha, "°"], ["β", e.beta, "°"], ["γ", e.gamma, "°"]], 180) + (heading != null ? `<div style="margin-top:6px">Kompass: <b>${nf(heading, 0)}°</b> ${["N","NO","O","SO","S","SW","W","NW"][Math.round(heading / 45) % 8]}</div>` : ""));
+      const h = e.webkitCompassHeading ?? (e.absolute && e.alpha != null ? (360 - e.alpha) % 360 : heading);
+      set("orient", bars([["α", e.alpha, "°"], ["β", e.beta, "°"], ["γ", e.gamma, "°"]], 180) + (h != null ? `<div style="margin-top:6px">Kompass: <b>${nf(h, 0)}°</b> ${["N","NO","O","SO","S","SW","W","NW"][Math.round(h / 45) % 8]}</div>` : ""));
     });
-    addEventListener("devicemotion", onMotion); addEventListener("deviceorientation", onOrient);
-    stops.push(() => { removeEventListener("devicemotion", onMotion); removeEventListener("deviceorientation", onOrient); });
+    addEventListener("devicemotion", onMotion); addEventListener("deviceorientation", onOrient); addEventListener("deviceorientationabsolute", onAbs);
+    stops.push(() => { removeEventListener("devicemotion", onMotion); removeEventListener("deviceorientation", onOrient); removeEventListener("deviceorientationabsolute", onAbs); });
     setTimeout(() => {
       if (!gotMotion) set("motion", "<p class='muted' style='margin:6px 0 0'>Keine Werte – dieses Gerät hat vermutlich keinen Bewegungssensor.</p>");
       if (!gotOrient) set("orient", "<p class='muted' style='margin:6px 0 0'>Keine Werte – dieses Gerät hat vermutlich keinen Lagesensor.</p>");
@@ -707,6 +710,7 @@ function viewSensoren(app) {
       if (!(cls in window)) continue;
       try {
         const s = new window[cls]({ frequency: 10 });
+        set(cls, "<p class='muted' style='margin:6px 0 0'>Warte auf Werte … (Chrome liefert sie nur, solange die Seite im Vordergrund ist)</p>");
         s.onreading = throttle(() => {
           if (s.quaternion) set(cls, bars(s.quaternion.map((v, i) => ["xyzw"[i], v]), 1));
           else if ("illuminance" in s) set(cls, `<div class="big" style="font-size:28px">${nf(s.illuminance, 0)} <span class="unit">lx</span></div>`);
@@ -881,12 +885,14 @@ function viewFps(app) {
 
   const cv = $("#fChart"), ctx = cv.getContext("2d");
   const deltas = [], hist = [];
-  let prev = 0, lastUi = 0, jank = 0;
+  let prev = 0, lastUi = 0, jank = 0, first = 0;
   const HZ = [30, 48, 50, 60, 72, 75, 90, 100, 120, 144, 165, 240];
   const unsub = fpsMeter.sub(t => {
     if (prev) { const d = t - prev; deltas.push(d); if (deltas.length > 240) deltas.shift(); }
     prev = t;
-    if (t - lastUi < 500 || deltas.length < 10) return;
+    if (!first) first = t;
+    // In der ersten Sekunde ist das 1-s-Fenster noch nicht voll, die FPS wären zu niedrig
+    if (t - lastUi < 500 || t - first < 1000) return;
     lastUi = t;
     const fps = fpsMeter.fps; hist.push(fps); if (hist.length > 120) hist.shift();
     const sorted = deltas.slice().sort((a, b) => a - b), med = sorted[sorted.length >> 1];
@@ -986,7 +992,7 @@ function viewGeraeteinfo(app) {
     drawDev();
   }).catch(() => {});
   const drawScr = () => $("#scr").innerHTML = kv({
-    "Auflösung (CSS)": `${s.width} × ${s.height}`, "Auflösung (Pixel)": `${Math.round(s.width * devicePixelRatio)} × ${Math.round(s.height * devicePixelRatio)}`,
+    "Auflösung (CSS)": `${s.width} × ${s.height}`, "Auflösung (Pixel)": `≈ ${Math.round(s.width * devicePixelRatio)} × ${Math.round(s.height * devicePixelRatio)}`,
     "Pixelverhältnis": nf(devicePixelRatio, 2), "Fenster": `${innerWidth} × ${innerHeight}`, "Farbtiefe": s.colorDepth + " Bit",
     "Farbraum": mq("(color-gamut: rec2020)") ? "Rec. 2020" : mq("(color-gamut: p3)") ? "Display P3" : "sRGB", "HDR": mq("(dynamic-range: high)") ? "ja" : "nein",
     "Ausrichtung": s.orientation?.type?.replace("portrait", "Hochformat").replace("landscape", "Querformat").replace("-primary", "").replace("-secondary", " (gedreht)"),
