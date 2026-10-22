@@ -1205,6 +1205,8 @@ function quietest(a, lo, hi) {
   return best;
 }
 function loudest(a, lo, hi) { let m = 0; for (let s = lo; s + F <= hi; s += F) m = Math.max(m, energy(a, s)); return m; }
+// Fehler aus Hintergrund-Promises der Laufzeit melden, statt still zu hängen
+self.addEventListener("unhandledrejection", e => postMessage({ type: "error", message: e.reason?.message || String(e.reason) }));
 self.onmessage = async ({ data: m }) => {
   try {
     if (m.type === "load") {
@@ -1320,7 +1322,7 @@ function txWorker() {
     else if (m.type === "ok") { const p = tx.pending; tx.pending = null; p?.res(); }
     else if (m.type === "error") { const p = tx.pending; tx.pending = null; p?.rej(new Error(m.message)); }
   };
-  tx.worker.onerror = e => { e.preventDefault?.(); const p = tx.pending; tx.pending = null; txKill(); p?.rej(new Error("Die Erkennungs-Bibliothek konnte nicht geladen werden. Beim ersten Mal ist eine Internetverbindung nötig.")); };
+  tx.worker.onerror = e => { e.preventDefault?.(); const p = tx.pending; tx.pending = null; txKill(); p?.rej(new Error(e.message ? "Fehler bei der Erkennung: " + e.message : "Die Erkennungs-Bibliothek konnte nicht geladen werden. Beim ersten Mal ist eine Internetverbindung nötig.")); };
   return tx.worker;
 }
 const txCall = (msg, transfer = []) => new Promise((res, rej) => { tx.pending = { res, rej }; txWorker().postMessage(msg, transfer); });
@@ -1331,6 +1333,7 @@ async function txStart(o) {
   Object.assign(tx, { busy: true, stop: false, error: "", sub: "", chunks: [], done: 0, t0: 0, dl: {}, name: tx.file.name, model: m.name });
   tx.ui?.result();
   try { tx.lock = await navigator.wakeLock?.request("screen"); } catch {}
+  const tick = setInterval(() => tx.ui?.status(), 1000); // Wartezeit beim Vorbereiten sichtbar halten
   try {
     tx.phase = "Audio wird gelesen …"; tx.ui?.status();
     let audio;
@@ -1346,7 +1349,7 @@ async function txStart(o) {
       const keys = "caches" in self ? (await (await caches.open(TX_CACHE)).keys()).map(r => r.url) : [];
       const cached = txFiles(m, dt).every(u => keys.includes(u));
       tx.phase = cached ? "Modell wird aus dem Gerätespeicher geladen …" : "Modell wird heruntergeladen …";
-      tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.ui?.status();
+      tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.dev = d; tx.prep = 0; tx.ui?.status();
       if (!cached) navigator.storage?.persist?.().catch(() => {}); // Browser bitten, den Cache nicht automatisch zu räumen
       await txCall({ type: "load", model: m.id, device: d, dtype: dt });
     };
@@ -1367,6 +1370,7 @@ async function txStart(o) {
   } catch (e) {
     tx.phase = ""; tx.error = e.message;
   } finally {
+    clearInterval(tick);
     tx.busy = false; tx.ui?.status(); tx.ui?.result(); tx.ui?.cache();
     tx.lock?.release?.().catch(() => {}); tx.lock = null;
   }
@@ -1467,7 +1471,13 @@ function viewTranskription(app) {
     if (tx.busy && files.length) {
       const got = files.reduce((s, [l]) => s + l, 0), tot = Math.max(tx.expect, files.reduce((s, [, t]) => s + t, 0));
       pct = got / tot;
-      if (files.every(([l, t]) => l >= t) && got >= tot * .97) { $("#txPhase").textContent = "Modell wird vorbereitet …"; pct = 1; }
+      if (files.every(([l, t]) => l >= t) && got >= tot * .97) {
+        tx.prep ||= performance.now();
+        const w = (performance.now() - tx.prep) / 1000;
+        $("#txPhase").textContent = `Modell wird vorbereitet (${tx.dev === "webgpu" ? "Grafikkarte" : "Prozessor"}) … ${txClock(w)}`;
+        if (w > 60) sub = (tx.dev === "webgpu" ? "Dauert ungewöhnlich lange. Auf manchen Geräten hängt die Grafikkarte hier: Abbrechen und beim Rechenweg „Prozessor“ wählen." : "Dauert ungewöhnlich lange. Auf schwachen Geräten oder bei großen Modellen kann das mehrere Minuten brauchen.") + (sub ? " · " + sub : "");
+        pct = 1;
+      }
       else sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
     } else if (tx.busy && tx.t0 && tx.done) {
       pct = tx.done;
