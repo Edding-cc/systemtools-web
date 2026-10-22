@@ -1182,11 +1182,14 @@ const TX_CACHE = "transformers-cache"; // Cache-Storage-Name, den Transformers.j
 const TX_SR = 16000;
 // Dateigrößen in MB je Datentyp (Encoder, Decoder), Stand Hugging Face
 const TX_MODELS = [
-  { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, eher ungenau", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
-  { id: "onnx-community/whisper-base", name: "Base", note: "schnell, brauchbar", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
-  { id: "onnx-community/whisper-small", name: "Small", note: "deutlich besser für Deutsch, langsamer", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
-  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität, nur mit Grafikkarte", gpuOnly: true, enc: { q4: 424.9, q4f16: 370 }, dec: { q4: 334.1, q4f16: 193.5 } }
+  { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, für Deutsch kaum brauchbar", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
+  { id: "onnx-community/whisper-base", name: "Base", note: "schnell, für Deutsch nur grob", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
+  { id: "onnx-community/whisper-small", name: "Small", note: "gut für Deutsch, ohne Grafikkarte aber langsam", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
+  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität, nur mit Grafikkarte", gpuOnly: true, enc: { q4: 424.9, q4f16: 370 }, dec: { q4: 334.1, q4f16: 193.5 } },
+  { id: "onnx-community/whisper-large-v3-turbo-german-ONNX", name: "Large v3 Turbo Deutsch", note: "auf Deutsch nachtrainiert, nur mit Grafikkarte", de: true, gpuOnly: true, enc: { q4: 424.9, q4f16: 369.9 }, dec: { q4: 334, q4f16: 193.4 } }
 ];
+// Voreinstellung je Rechenweg, gemessen an deutscher Sprache
+const TX_BEST = { webgpu: "onnx-community/whisper-large-v3-turbo", wasm: "onnx-community/whisper-small" };
 const TX_SUFFIX = { fp32: "", fp16: "_fp16", q8: "_quantized", q4: "_q4", q4f16: "_q4f16" };
 const TX_LANGS = [["de", "Deutsch"], ["en", "Englisch"], ["fr", "Französisch"], ["es", "Spanisch"], ["it", "Italienisch"], ["nl", "Niederländisch"], ["pl", "Polnisch"], ["pt", "Portugiesisch"], ["tr", "Türkisch"], ["ru", "Russisch"], ["uk", "Ukrainisch"], ["ar", "Arabisch"], ["zh", "Chinesisch"], ["ja", "Japanisch"]];
 // Läuft als Modul-Worker, damit die Seite während der Erkennung bedienbar bleibt
@@ -1375,7 +1378,7 @@ function txCancel() {
 }
 
 function viewTranskription(app) {
-  const o = Object.assign({ model: TX_MODELS[1].id, lang: "de", dev: "auto" }, store.get("tx.opts", {}));
+  const o = Object.assign({ model: "", lang: "de", dev: "auto" }, store.get("tx.opts", {}));
   app.innerHTML = `
     <div class="hint">Wandelt Sprache aus einer Audio- oder Videodatei in Text um. Die Erkennung (Whisper) läuft komplett auf deinem Gerät, die Datei verlässt es nicht. Nur das Sprachmodell wird beim ersten Mal von Hugging Face geladen und danach im Browser gespeichert, beim nächsten Aufruf geht es ohne erneuten Download.</div>
     <div class="card" id="txDrop">
@@ -1424,15 +1427,16 @@ function viewTranskription(app) {
   const gpuReady = txGpu();
   const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
   const saveOpts = () => store.set("tx.opts", o);
-  const modelInfo = () => { const m = TX_MODELS.find(x => x.id === o.model); $("#txModelInfo").textContent = m ? m.name + ": " + m.note + "." : ""; };
+  // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
+  const cur = () => { const m = TX_MODELS.find(x => x.id === o.model); return m && !(m.gpuOnly && effDev() !== "webgpu") ? m.id : TX_BEST[effDev()]; };
+  const modelInfo = () => { const m = TX_MODELS.find(x => x.id === cur()); $("#txModelInfo").textContent = m ? m.name + ": " + m.note + "." : ""; };
   const drawModels = () => {
     const dev = effDev();
     $("#txModel").innerHTML = TX_MODELS.map(m => {
       const dt = txDtype(m, dev, tx.gpu?.f16), off = m.gpuOnly && dev !== "webgpu";
       const have = txFiles(m, dt).every(u => keys.includes(u));
-      return `<option value="${m.id}" ${o.model === m.id ? "selected" : ""} ${off ? "disabled" : ""}>${m.name} · ${off ? "nur mit Grafikkarte" : have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
+      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""} ${off ? "disabled" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${off ? "nur mit Grafikkarte" : have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
     }).join("");
-    if ($("#txModel").selectedOptions[0]?.disabled) { o.model = TX_MODELS[1].id; $("#txModel").value = o.model; }
     modelInfo();
     $("#txDevInfo").textContent = tx.gpu === undefined ? "Grafikkarte wird geprüft …"
       : (tx.gpu ? "Grafikkarte (WebGPU) verfügbar" + (tx.gpu.f16 ? ", mit 16-Bit-Unterstützung." : ".") : "Keine Grafikkarte (WebGPU) verfügbar, es rechnet der Prozessor.")
@@ -1548,7 +1552,7 @@ function viewTranskription(app) {
     if (!tx.file) return;
     if (tx.chunks.length && !confirm("Das bisherige Ergebnis wird ersetzt. Fortfahren?")) return;
     stopRec(false);
-    txStart({ ...o });
+    txStart({ ...o, model: cur() });
   };
   $("#txTs").onchange = result;
   $("#txExp").onclick = e => {
