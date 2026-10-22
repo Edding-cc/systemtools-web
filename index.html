@@ -1185,8 +1185,7 @@ const TX_MODELS = [
   { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, für Deutsch kaum brauchbar", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
   { id: "onnx-community/whisper-base", name: "Base", note: "schnell, für Deutsch nur grob", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
   { id: "onnx-community/whisper-small", name: "Small", note: "gut für Deutsch, ohne Grafikkarte aber langsam", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
-  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität, nur mit Grafikkarte", gpuOnly: true, enc: { q4: 424.9, q4f16: 370 }, dec: { q4: 334.1, q4f16: 193.5 } },
-  { id: "onnx-community/whisper-large-v3-turbo-german-ONNX", name: "Large v3 Turbo Deutsch", note: "auf Deutsch nachtrainiert, nur mit Grafikkarte", de: true, gpuOnly: true, enc: { q4: 424.9, q4f16: 369.9 }, dec: { q4: 334, q4f16: 193.4 } }
+  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität für Deutsch; ohne Grafikkarte sehr langsam (etwa dreimal so lang wie die Aufnahme) und mit viel Arbeitsspeicher, auf Handys eher nicht", big: true, enc: { q8: 644.8, q4: 424.9, q4f16: 370 }, dec: { q8: 439.9, q4: 334.1, q4f16: 193.5 } }
 ];
 // Voreinstellung je Rechenweg, gemessen an deutscher Sprache
 const TX_BEST = { webgpu: "onnx-community/whisper-large-v3-turbo", wasm: "onnx-community/whisper-small" };
@@ -1257,7 +1256,7 @@ addEventListener("beforeunload", e => { if (tx.busy) e.preventDefault(); });
 
 function txDtype(m, dev, f16) {
   if (dev === "wasm") return { encoder_model: "q8", decoder_model_merged: "q8" };
-  if (m.gpuOnly) return f16 ? { encoder_model: "q4f16", decoder_model_merged: "q4f16" } : { encoder_model: "q4", decoder_model_merged: "q4" };
+  if (m.big) return f16 ? { encoder_model: "q4f16", decoder_model_merged: "q4f16" } : { encoder_model: "q4", decoder_model_merged: "q4" };
   return { encoder_model: f16 ? "fp16" : "fp32", decoder_model_merged: "q4" };
 }
 const txSize = (m, dt) => (m.enc[dt.encoder_model] || 0) + (m.dec[dt.decoder_model_merged] || 0);
@@ -1342,7 +1341,6 @@ async function txStart(o) {
     if (tx.stop) throw new Error("Abgebrochen.");
     let dev = o.dev === "auto" ? (gpu ? "webgpu" : "wasm") : o.dev;
     if (dev === "webgpu" && !gpu) dev = "wasm";
-    if (m.gpuOnly && dev !== "webgpu") throw new Error(`${m.name} braucht eine Grafikkarte (WebGPU). Wähle ein kleineres Modell.`);
     const load = async d => {
       const dt = txDtype(m, d, gpu?.f16);
       const keys = "caches" in self ? (await (await caches.open(TX_CACHE)).keys()).map(r => r.url) : [];
@@ -1354,7 +1352,9 @@ async function txStart(o) {
     };
     try { await load(dev); }
     catch (e) {
-      if (dev !== "webgpu" || m.gpuOnly || /konnte nicht geladen/.test(e.message)) throw e;
+      // Kein stiller Wechsel bei Turbo, auf dem Prozessor wären das andere Dateien mit über 1 GB
+      if (dev !== "webgpu" || /konnte nicht geladen/.test(e.message)) throw e;
+      if (m.big) throw new Error(`${e.message} – Die Grafikkarte kann ${m.name} nicht ausführen. Wähle beim Rechenweg „Prozessor“ (über 1 GB Download, langsam) oder ein kleineres Modell.`);
       txKill(); dev = "wasm"; tx.sub = "Grafikkarte nicht nutzbar, es wird der Prozessor verwendet.";
       await load(dev);
     }
@@ -1428,14 +1428,14 @@ function viewTranskription(app) {
   const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
   const saveOpts = () => store.set("tx.opts", o);
   // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
-  const cur = () => { const m = TX_MODELS.find(x => x.id === o.model); return m && !(m.gpuOnly && effDev() !== "webgpu") ? m.id : TX_BEST[effDev()]; };
+  const cur = () => { const m = TX_MODELS.find(x => x.id === o.model); return m ? m.id : TX_BEST[effDev()]; };
   const modelInfo = () => { const m = TX_MODELS.find(x => x.id === cur()); $("#txModelInfo").textContent = m ? m.name + ": " + m.note + "." : ""; };
   const drawModels = () => {
     const dev = effDev();
     $("#txModel").innerHTML = TX_MODELS.map(m => {
-      const dt = txDtype(m, dev, tx.gpu?.f16), off = m.gpuOnly && dev !== "webgpu";
+      const dt = txDtype(m, dev, tx.gpu?.f16);
       const have = txFiles(m, dt).every(u => keys.includes(u));
-      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""} ${off ? "disabled" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${off ? "nur mit Grafikkarte" : have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
+      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
     }).join("");
     modelInfo();
     $("#txDevInfo").textContent = tx.gpu === undefined ? "Grafikkarte wird geprüft …"
