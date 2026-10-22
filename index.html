@@ -1326,6 +1326,11 @@ function txWorker() {
   return tx.worker;
 }
 const txCall = (msg, transfer = []) => new Promise((res, rej) => { tx.pending = { res, rej }; txWorker().postMessage(msg, transfer); });
+// Download fertig, Laufzeit baut die Sitzung auf (gilt auch beim Laden aus dem Gerätespeicher)
+function txPreparing() {
+  const f = Object.entries(tx.dl);
+  return tx.busy && !tx.t0 && f.filter(([k]) => /\.onnx/.test(k)).length >= 2 && f.every(([, [l, t]]) => l >= t);
+}
 function txKill() { tx.worker?.terminate(); tx.worker = null; }
 
 async function txStart(o) {
@@ -1333,7 +1338,16 @@ async function txStart(o) {
   Object.assign(tx, { busy: true, stop: false, error: "", sub: "", chunks: [], done: 0, t0: 0, dl: {}, name: tx.file.name, model: m.name });
   tx.ui?.result();
   try { tx.lock = await navigator.wakeLock?.request("screen"); } catch {}
-  const tick = setInterval(() => tx.ui?.status(), 1000); // Wartezeit beim Vorbereiten sichtbar halten
+  // Wartezeit beim Vorbereiten sichtbar halten; hängt die Grafikkarte, auf den Prozessor ausweichen
+  const tick = setInterval(() => {
+    if (txPreparing()) {
+      tx.prep ||= performance.now();
+      if (tx.dev === "webgpu" && !m.big && tx.pending && performance.now() - tx.prep > 60000) {
+        const p = tx.pending; tx.pending = null; txKill(); p.rej(new Error("Die Grafikkarte reagiert nicht."));
+      }
+    }
+    tx.ui?.status();
+  }, 1000);
   try {
     tx.phase = "Audio wird gelesen …"; tx.ui?.status();
     let audio;
@@ -1358,7 +1372,7 @@ async function txStart(o) {
       // Kein stiller Wechsel bei Turbo, auf dem Prozessor wären das andere Dateien mit über 1 GB
       if (dev !== "webgpu" || /konnte nicht geladen/.test(e.message)) throw e;
       if (m.big) throw new Error(`${e.message} – Die Grafikkarte kann ${m.name} nicht ausführen. Wähle beim Rechenweg „Prozessor“ (über 1 GB Download, langsam) oder ein kleineres Modell.`);
-      txKill(); dev = "wasm"; tx.sub = "Grafikkarte nicht nutzbar, es wird der Prozessor verwendet.";
+      txKill(); dev = "wasm"; tx.sub = (/reagiert nicht/.test(e.message) ? "Grafikkarte reagiert nicht" : "Grafikkarte nicht nutzbar") + ", es wird der Prozessor verwendet.";
       await load(dev);
     }
     if (tx.stop) throw new Error("Abgebrochen.");
@@ -1471,11 +1485,12 @@ function viewTranskription(app) {
     if (tx.busy && files.length) {
       const got = files.reduce((s, [l]) => s + l, 0), tot = Math.max(tx.expect, files.reduce((s, [, t]) => s + t, 0));
       pct = got / tot;
-      if (files.every(([l, t]) => l >= t) && got >= tot * .97) {
+      if (txPreparing()) {
         tx.prep ||= performance.now();
         const w = (performance.now() - tx.prep) / 1000;
         $("#txPhase").textContent = `Modell wird vorbereitet (${tx.dev === "webgpu" ? "Grafikkarte" : "Prozessor"}) … ${txClock(w)}`;
-        if (w > 60) sub = (tx.dev === "webgpu" ? "Dauert ungewöhnlich lange. Auf manchen Geräten hängt die Grafikkarte hier: Abbrechen und beim Rechenweg „Prozessor“ wählen." : "Dauert ungewöhnlich lange. Auf schwachen Geräten oder bei großen Modellen kann das mehrere Minuten brauchen.") + (sub ? " · " + sub : "");
+        if (w > 60) sub = (tx.dev === "webgpu" ? "Dauert ungewöhnlich lange. Hängt es, abbrechen und ein kleineres Modell oder beim Rechenweg „Prozessor“ wählen." : "Dauert ungewöhnlich lange. Auf schwachen Geräten oder bei großen Modellen kann das mehrere Minuten brauchen.") + (sub ? " · " + sub : "");
+        else if (w > 10 && tx.dev === "webgpu" && !TX_MODELS.find(x => x.name === tx.model)?.big) sub = `Hängt die Grafikkarte, wird nach 1 Minute automatisch der Prozessor genommen.` + (sub ? " · " + sub : "");
         pct = 1;
       }
       else sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
