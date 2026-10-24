@@ -214,3 +214,25 @@ addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
 // Das FPS-Overlay gilt auf allen Seiten
 if (document.body) applyOverlay(); else addEventListener("DOMContentLoaded", applyOverlay);
 addEventListener("scroll", () => { const t = $("#top"); if (t) t.classList.toggle("scrolled", scrollY > 4); }, { passive: true });
+
+/* ---------- Als App installieren (PWA) ---------- */
+if ("serviceWorker" in navigator && isSecureContext) {
+  addEventListener("load", () => navigator.serviceWorker.register(ROOT + "sw.js").catch(() => {}));
+}
+// Chrome/Edge/Android: Installationsangebot merken und über installApp() auslösen
+const install = {
+  prompt: null,
+  get standalone() { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; },
+  get ios() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); },
+  subs: new Set(),
+  notify() { this.subs.forEach(fn => { try { fn(); } catch {} }); }
+};
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); install.prompt = e; install.notify(); });
+addEventListener("appinstalled", () => { install.prompt = null; toast("Als App installiert"); install.notify(); });
+async function installApp() {
+  if (!install.prompt) return false;
+  install.prompt.prompt();
+  const { outcome } = await install.prompt.userChoice;
+  install.prompt = null; install.notify();
+  return outcome === "accepted";
+}
