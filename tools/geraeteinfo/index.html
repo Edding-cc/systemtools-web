@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Geräteinfo · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Geräteinfo</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Geräteinfo
+   ========================================================= */
+function viewGeraeteinfo(app) {
+  const gl = (() => { try { const c = document.createElement("canvas"); const g = c.getContext("webgl2") || c.getContext("webgl"); if (!g) return {}; const d = g.getExtension("WEBGL_debug_renderer_info"); return { renderer: d ? g.getParameter(d.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER), vendor: d ? g.getParameter(d.UNMASKED_VENDOR_WEBGL) : g.getParameter(g.VENDOR), ver: g.getParameter(g.VERSION), max: g.getParameter(g.MAX_TEXTURE_SIZE) }; } catch { return {}; } })();
+  const mq = q => matchMedia(q).matches;
+  const s = screen;
+  app.innerHTML = `
+    <div class="card"><h3>Gerät</h3><div id="dev"></div></div>
+    <div class="card"><h3>Bildschirm</h3><div id="scr"></div></div>
+    <div class="card"><h3>Grafik</h3>${kv({ "GPU": gl.renderer, "Hersteller": gl.vendor, "WebGL": gl.ver, "Max. Texturgröße": gl.max ? gl.max + " px" : null, "WebGPU": "gpu" in navigator ? "verfügbar" : "nicht verfügbar" })}</div>
+    <div class="card"><h3>Browser</h3>${kv({ "User-Agent": navigator.userAgent, "Sprachen": (navigator.languages || [navigator.language]).join(", "), "Zeitzone": Intl.DateTimeFormat().resolvedOptions().timeZone, "Cookies": navigator.cookieEnabled ? "an" : "aus", "Do Not Track": navigator.doNotTrack === "1" ? "an" : "aus", "Als App installiert": mq("(display-mode: standalone)") ? "ja" : "nein", "Farbschema": mq("(prefers-color-scheme: dark)") ? "dunkel" : "hell", "Weniger Bewegung": mq("(prefers-reduced-motion: reduce)") ? "ja" : "nein" })}</div>
+    <div class="card"><h3>Speicher dieser Seite</h3><div id="sto">–</div></div>
+    <button class="btn tonal" id="cpAll">Alles kopieren</button>`;
+  const devInfo = { "Prozessorkerne": navigator.hardwareConcurrency, "Arbeitsspeicher": navigator.deviceMemory ? "≥ " + navigator.deviceMemory + " GB (vom Browser gerundet, max. 8)" : null, "Plattform": navigator.userAgentData?.platform || navigator.platform, "Touchpunkte": navigator.maxTouchPoints, "Mobilgerät": navigator.userAgentData ? (navigator.userAgentData.mobile ? "ja" : "nein") : null };
+  const drawDev = () => $("#dev").innerHTML = kv(devInfo);
+  drawDev();
+  navigator.userAgentData?.getHighEntropyValues?.(["model", "platformVersion", "architecture", "bitness", "fullVersionList"]).then(h => {
+    Object.assign(devInfo, { "Modell": h.model || null, "System-Version": h.platformVersion, "Architektur": h.architecture ? h.architecture + (h.bitness ? " " + h.bitness + "-Bit" : "") : null, "Browser": h.fullVersionList?.filter(b => !/Not.?A.?Brand/i.test(b.brand)).map(b => b.brand + " " + b.version).join(", ") });
+    drawDev();
+  }).catch(() => {});
+  const drawScr = () => $("#scr").innerHTML = kv({
+    "Auflösung (CSS)": `${s.width} × ${s.height}`, "Auflösung (Pixel)": `≈ ${Math.round(s.width * devicePixelRatio)} × ${Math.round(s.height * devicePixelRatio)}`,
+    "Pixelverhältnis": nf(devicePixelRatio, 2), "Fenster": `${innerWidth} × ${innerHeight}`, "Farbtiefe": s.colorDepth + " Bit",
+    "Farbraum": mq("(color-gamut: rec2020)") ? "Rec. 2020" : mq("(color-gamut: p3)") ? "Display P3" : "sRGB", "HDR": mq("(dynamic-range: high)") ? "ja" : "nein",
+    "Ausrichtung": s.orientation?.type?.replace("portrait", "Hochformat").replace("landscape", "Querformat").replace("-primary", "").replace("-secondary", " (gedreht)"),
+    "Mehrere Bildschirme": s.isExtended != null ? (s.isExtended ? "ja" : "nein") : null, "Bildwiederholrate": "im Werkzeug „Bildrate (FPS)“"
+  });
+  drawScr(); addEventListener("resize", drawScr); onLeave(() => removeEventListener("resize", drawScr));
+  navigator.storage?.estimate?.().then(e => $("#sto").innerHTML = kv({ "Belegt": fmtBytes(e.usage), "Verfügbar (Kontingent)": fmtBytes(e.quota) })).catch(() => {});
+  $("#cpAll").onclick = () => copy($$(".card", app).map(c => c.querySelector("h3").textContent + "\n" + $$("dt", c).map(dt => `  ${dt.textContent}: ${dt.nextElementSibling.textContent}`).join("\n")).join("\n\n"));
+}
+
+viewGeraeteinfo($("#app"));
+})();
+</script>
+</body>
+</html>

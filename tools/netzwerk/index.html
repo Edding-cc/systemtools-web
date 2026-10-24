@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Netzwerk · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Netzwerk</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Netzwerk
+   ========================================================= */
+function viewNetzwerk(app) {
+  const c = navigator.connection;
+  app.innerHTML = `
+    <div class="card"><h3>Verbindung</h3><div id="conn"></div></div>
+    <div class="card"><h3>Öffentliche Adresse</h3><div id="pub"><button class="btn tonal" id="pubGo">Abfragen</button><p class="muted" style="font-size:13px;margin:8px 0 0">Fragt <span class="mono">speed.cloudflare.com/cdn-cgi/trace</span> ab. Cloudflare sieht dabei deine IP-Adresse.</p></div></div>`;
+  const TYPE = { wifi: "WLAN", cellular: "Mobilfunk", ethernet: "Ethernet", bluetooth: "Bluetooth", none: "keine", other: "sonstige", unknown: "unbekannt", wimax: "WiMAX" };
+  const draw = () => $("#conn").innerHTML = kv({
+    "Status": navigator.onLine ? "online" : "offline",
+    "Verbindungsart": c?.type ? TYPE[c.type] || c.type : c ? "vom Browser nicht angegeben" : "nicht verfügbar",
+    "Effektiver Typ": c?.effectiveType?.toUpperCase(),
+    "Geschätzte Bandbreite": c?.downlink != null ? nf(c.downlink, 1) + " Mbit/s (vom Browser gedeckelt)" : null,
+    "Geschätzte Latenz": c?.rtt != null ? c.rtt + " ms" : null,
+    "Datensparmodus": c?.saveData != null ? (c.saveData ? "an" : "aus") : null
+  });
+  draw();
+  c?.addEventListener("change", draw); addEventListener("online", draw); addEventListener("offline", draw);
+  onLeave(() => { c?.removeEventListener("change", draw); removeEventListener("online", draw); removeEventListener("offline", draw); });
+  $("#pubGo").onclick = async () => {
+    $("#pub").innerHTML = "<p class='muted'>Frage ab …</p>";
+    try {
+      const t = await (await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" })).text();
+      const o = Object.fromEntries(t.trim().split("\n").map(l => l.split("=")));
+      $("#pub").innerHTML = kv({ "IP-Adresse": o.ip, "Protokoll": o.ip?.includes(":") ? "IPv6" : "IPv4", "Land": o.loc, "Rechenzentrum": o.colo, "HTTP": o.http, "TLS": o.tls, "Cloudflare WARP": o.warp }) + `<button class="btn text" id="cpIp" style="margin-top:8px">IP kopieren</button>`;
+      $("#cpIp").onclick = () => copy(o.ip);
+    } catch { $("#pub").innerHTML = "<p class='err'>Abfrage fehlgeschlagen.</p>"; }
+  };
+}
+
+viewNetzwerk($("#app"));
+})();
+</script>
+</body>
+</html>

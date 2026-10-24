@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taschenlampe & Bildschirm · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+#screenLight{position:fixed;inset:0;background:#fff;z-index:60;display:none;align-items:flex-end;justify-content:center;padding-bottom:40px}
+#screenLight .btn{background:#000;color:#fff}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Taschenlampe & Bildschirm</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div id="screenLight"><button class="btn" id="screenLightOff">Bildschirmlicht aus</button></div>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Taschenlampe & Bildschirm
+   ========================================================= */
+let torchStream = null, wakeLock = null;
+function viewLicht(app) {
+  app.innerHTML = `
+    <div class="card">
+      <h3>Taschenlampe</h3>
+      <p class="muted" style="font-size:14px;margin:0 0 10px">Schaltet den Kamerablitz. Das klappt in Chrome auf Android. Auf dem iPhone und am PC nimmst du das Bildschirmlicht.</p>
+      <div class="row"><button class="btn" id="torch">Blitz einschalten</button><button class="btn tonal" id="scrLight">Bildschirmlicht</button></div>
+      <p id="torchMsg" class="muted" style="margin:8px 0 0;font-size:14px"></p>
+    </div>
+    <div class="card">
+      <h3>Bildschirm wach halten</h3>
+      <label class="switch"><span>Bildschirm nicht ausschalten, solange diese Seite offen ist</span><input type="checkbox" id="wake" ${"wakeLock" in navigator ? "" : "disabled"}></label>
+      ${"wakeLock" in navigator ? "" : "<p class='muted' style='font-size:14px;margin:0'>Dein Browser unterstützt das nicht.</p>"}
+    </div>
+    <div class="card">
+      <h3>Vibration</h3>
+      <div class="row">${[["Kurz", 80], ["Lang", 600], ["Muster", [100, 80, 100, 80, 300]]].map(([l, p]) => `<button class="btn tonal" data-v='${JSON.stringify(p)}' ${"vibrate" in navigator ? "" : "disabled"}>${l}</button>`).join("")}</div>
+      ${"vibrate" in navigator ? "" : "<p class='muted' style='font-size:14px;margin:8px 0 0'>Dein Browser unterstützt keine Vibration (z. B. iPhone).</p>"}
+    </div>`;
+  const tb = $("#torch");
+  const syncTorch = () => tb.textContent = torchStream ? "Blitz ausschalten" : "Blitz einschalten";
+  syncTorch();
+  tb.onclick = async () => {
+    $("#torchMsg").textContent = "";
+    if (torchStream) { torchStream.getTracks().forEach(t => t.stop()); torchStream = null; syncTorch(); return; }
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+      const track = s.getVideoTracks()[0];
+      if (!track.getCapabilities?.().torch) { s.getTracks().forEach(t => t.stop()); $("#torchMsg").textContent = "Diese Kamera hat keinen steuerbaren Blitz. Nimm das Bildschirmlicht."; return; }
+      await track.applyConstraints({ advanced: [{ torch: true }] });
+      torchStream = s; syncTorch();
+    } catch (e) { $("#torchMsg").textContent = e.name === "NotAllowedError" ? "Kamerazugriff verweigert." : "Kein Blitz verfügbar. Nimm das Bildschirmlicht."; }
+  };
+  $("#scrLight").onclick = async () => {
+    $("#screenLight").style.display = "flex";
+    try { await document.documentElement.requestFullscreen?.(); } catch {}
+  };
+  const wk = $("#wake");
+  wk.checked = !!wakeLock;
+  wk.onchange = async () => {
+    if (wk.checked) {
+      try { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; const w = $("#wake"); if (w) w.checked = false; }); }
+      catch { wk.checked = false; toast("Nicht möglich (Energiesparmodus?)"); }
+    } else { await wakeLock?.release(); wakeLock = null; }
+  };
+  $$("[data-v]", app).forEach(b => b.onclick = () => navigator.vibrate(JSON.parse(b.dataset.v)));
+}
+$("#screenLightOff").onclick = () => { $("#screenLight").style.display = "none"; if (document.fullscreenElement) document.exitFullscreen?.(); };
+$("#screenLightOff").onclick = () => { $("#screenLight").style.display = "none"; if (document.fullscreenElement) document.exitFullscreen?.(); };
+onLeave(() => { torchStream?.getTracks().forEach(t => t.stop()); torchStream = null; wakeLock?.release?.().catch?.(() => {}); wakeLock = null; });
+
+viewLicht($("#app"));
+})();
+</script>
+</body>
+</html>

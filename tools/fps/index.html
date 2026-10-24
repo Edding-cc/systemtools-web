@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bildrate (FPS) · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+canvas.chart{width:100%;height:120px;display:block;background:var(--surface-2);border-radius:12px}
+.pos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:220px}
+.pos-grid button{min-height:40px;border:1px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;font-size:12px}
+.pos-grid button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Bildrate (FPS)</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+const POS = ["Oben links", "Oben Mitte", "Oben rechts", "Mitte links", "Mitte", "Mitte rechts", "Unten links", "Unten Mitte", "Unten rechts"];
+function viewFps(app) {
+  app.innerHTML = `
+    <div class="hint">Gemessen wird, wie oft der Browser diese Seite pro Sekunde zeichnet. Das entspricht der Bildwiederholrate deines Bildschirms (z. B. 60, 90, 120 Hz), solange nichts ruckelt. Die Bildrate anderer Apps oder Spiele kann eine Webseite nicht messen.</div>
+    <div class="card" style="text-align:center"><div class="big" id="fNow">–</div><div class="muted">Bilder pro Sekunde</div></div>
+    <div class="card">
+      <div class="grid2"><div>${kv({ "Geschätzte Hz": "–" }).replace("–", "<span id='fHz'>–</span>")}</div><div>${kv({ "Ruckler (>1,5× Frame)": "–" }).replace("–", "<span id='fJank'>–</span>")}</div></div>
+      <div style="margin-top:8px">${kv({ "Min / Ø / Max": "–" }).replace("–", "<span id='fStats'>–</span>")}</div>
+      <canvas class="chart" id="fChart" style="margin-top:12px"></canvas>
+      <div class="muted" style="font-size:12px;margin-top:4px">Bildzeit der letzten Frames in ms</div>
+    </div>
+    <div class="card">
+      <h3>Overlay</h3>
+      <label class="switch"><span>FPS-Anzeige auf allen Seiten dieser Web-App einblenden</span><input type="checkbox" id="oOn"></label>
+      <label class="fld">Position</label>
+      <div class="pos-grid" id="oPos">${POS.map((p, i) => `<button data-i="${i}" title="${p}" aria-label="${p}">${["↖","↑","↗","←","•","→","↙","↓","↘"][i]}</button>`).join("")}</div>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="fld" for="oColor">Schriftfarbe</label><input type="color" id="oColor" style="width:100%;height:40px;border:0;background:none"></div>
+        <div><label class="fld" for="oBg">Hintergrundfarbe</label><input type="color" id="oBg" style="width:100%;height:40px;border:0;background:none"></div>
+      </div>
+      <label class="switch"><span>Hintergrund</span><input type="checkbox" id="oBgOn"></label>
+      <label class="fld" for="oAlpha">Deckkraft Hintergrund: <span id="oAlphaV"></span> %</label><input type="range" id="oAlpha" min="10" max="100">
+      <label class="fld" for="oSize">Schriftgröße: <span id="oSizeV"></span> px</label><input type="range" id="oSize" min="10" max="40">
+      <label class="fld" for="oRad">Ecken abrunden: <span id="oRadV"></span> px</label><input type="range" id="oRad" min="0" max="24">
+    </div>`;
+  const bind = () => {
+    $("#oOn").checked = fpsCfg.on; $("#oColor").value = fpsCfg.color; $("#oBg").value = fpsCfg.bg; $("#oBgOn").checked = fpsCfg.bgOn;
+    $("#oAlpha").value = fpsCfg.bgAlpha; $("#oSize").value = fpsCfg.size; $("#oRad").value = fpsCfg.radius;
+    $("#oAlphaV").textContent = fpsCfg.bgAlpha; $("#oSizeV").textContent = fpsCfg.size; $("#oRadV").textContent = fpsCfg.radius;
+    $$("#oPos button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.i === fpsCfg.pos));
+  };
+  bind();
+  const upd = (k, v) => { fpsCfg[k] = v; applyOverlay(); bind(); };
+  $("#oOn").onchange = e => upd("on", e.target.checked);
+  $("#oColor").oninput = e => upd("color", e.target.value);
+  $("#oBg").oninput = e => upd("bg", e.target.value);
+  $("#oBgOn").onchange = e => upd("bgOn", e.target.checked);
+  $("#oAlpha").oninput = e => upd("bgAlpha", +e.target.value);
+  $("#oSize").oninput = e => upd("size", +e.target.value);
+  $("#oRad").oninput = e => upd("radius", +e.target.value);
+  $("#oPos").onclick = e => { const b = e.target.closest("button"); if (b) upd("pos", +b.dataset.i); };
+
+  const cv = $("#fChart"), ctx = cv.getContext("2d");
+  const deltas = [], hist = [];
+  let prev = 0, lastUi = 0, jank = 0, first = 0;
+  const HZ = [30, 48, 50, 60, 72, 75, 90, 100, 120, 144, 165, 240];
+  const unsub = fpsMeter.sub(t => {
+    if (prev) { const d = t - prev; deltas.push(d); if (deltas.length > 240) deltas.shift(); }
+    prev = t;
+    if (!first) first = t;
+    // In der ersten Sekunde ist das 1-s-Fenster noch nicht voll, die FPS wären zu niedrig
+    if (t - lastUi < 500 || t - first < 1000) return;
+    lastUi = t;
+    const fps = fpsMeter.fps; hist.push(fps); if (hist.length > 120) hist.shift();
+    const sorted = deltas.slice().sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+    const hz = 1000 / med, near = HZ.reduce((a, b) => Math.abs(b - hz) < Math.abs(a - hz) ? b : a);
+    jank = deltas.filter(d => d > med * 1.5).length;
+    $("#fNow").textContent = fps;
+    $("#fHz").textContent = `${nf(hz, 1)} Hz (≈ ${near} Hz)`;
+    $("#fJank").textContent = `${jank} von ${deltas.length}`;
+    $("#fStats").textContent = `${Math.min(...hist)} / ${nf(hist.reduce((a, b) => a + b, 0) / hist.length, 0)} / ${Math.max(...hist)}`;
+    // Diagramm
+    const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+    if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const max = Math.max(med * 3, ...deltas);
+    const cs = getComputedStyle(document.documentElement);
+    ctx.strokeStyle = cs.getPropertyValue("--border"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, h - med / max * h); ctx.lineTo(w, h - med / max * h); ctx.stroke();
+    ctx.strokeStyle = document.documentElement.dataset.dark === "1" ? "#fff" : settings.accent; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    deltas.forEach((d, i) => { const x = i / (240 - 1) * w, y = h - d / max * h; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.stroke();
+  });
+  onLeave(unsub);
+}
+
+viewFps($("#app"));
+})();
+</script>
+</body>
+</html>

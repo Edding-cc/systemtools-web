@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rechner · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.calc-display{background:var(--surface-2);border-radius:12px;padding:12px 14px;text-align:right;margin-bottom:12px}
+.calc-display input{background:none;border:0;padding:0;text-align:right;font-size:24px;font-family:var(--mono)}
+.calc-display .res{font-size:32px;font-weight:700;min-height:48px;word-break:break-all;font-variant-numeric:tabular-nums}
+.keys{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.keys button{min-height:52px;border:0;border-radius:14px;background:var(--surface-2);font-size:20px;cursor:pointer}
+.keys button.op{background:var(--accent-soft)}
+.keys button.eq{background:var(--accent);color:var(--on-accent);font-weight:700}
+.hist{font-family:var(--mono);font-size:14px;max-height:260px;overflow:auto}
+.hist div{padding:6px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Rechner</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Rechner
+   ========================================================= */
+const MATH_FN = { sqrt: Math.sqrt, wurzel: Math.sqrt, sin: x => Math.sin(x * Math.PI / 180), cos: x => Math.cos(x * Math.PI / 180), tan: x => Math.tan(x * Math.PI / 180), ln: Math.log, log: Math.log10, abs: Math.abs, round: Math.round, rund: Math.round };
+const MATH_CONST = { pi: Math.PI, "π": Math.PI, e: Math.E };
+class CalcError extends Error {}
+function evaluate(src, vars = {}) {
+  const s = src.replace(/[×·]/g, "*").replace(/[÷:]/g, "/").replace(/[−–]/g, "-").replace(/√/g, "sqrt").replace(/\s+/g, "");
+  let i = 0;
+  const peek = () => s[i];
+  const num = () => {
+    const m = /^(\d+(?:[.,]\d*)?|[.,]\d+)(?:e[+-]?\d+)?/i.exec(s.slice(i));
+    if (!m) return null; i += m[0].length; return parseFloat(m[0].replace(",", "."));
+  };
+  const ident = () => { const m = /^[a-zäöüπ]+/i.exec(s.slice(i)); if (!m) return null; i += m[0].length; return m[0].toLowerCase(); };
+  function expr() {
+    let v = term();
+    while (peek() === "+" || peek() === "-") { const op = s[i++]; const r = term(); v = op === "+" ? v + r : v - r; }
+    return v;
+  }
+  function term() {
+    let v = unary();
+    for (;;) {
+      const c = peek();
+      if (c === "*" || c === "/") {
+        i++; const r = unary();
+        if (c === "/") { if (r === 0) throw new CalcError("Division durch 0"); v /= r; } else v *= r;
+      } else if (c === "(" || (c && /[a-zπ\d.,]/i.test(c))) { v *= power(); } // implizite Multiplikation: 2(3), 2pi, 3c
+      else return v;
+    }
+  }
+  function unary() {
+    if (peek() === "-") { i++; return -unary(); }
+    if (peek() === "+") { i++; return unary(); }
+    return power();
+  }
+  function power() {
+    const b = postfix();
+    if (peek() === "^") { i++; return b ** unary(); }
+    return b;
+  }
+  function postfix() {
+    let v = primary();
+    while (peek() === "%" || peek() === "!") {
+      if (s[i++] === "%") v /= 100;
+      else { if (v < 0 || !Number.isInteger(v) || v > 170) throw new CalcError("Ungültige Eingabe"); let f = 1; for (let k = 2; k <= v; k++) f *= k; v = f; }
+    }
+    return v;
+  }
+  function primary() {
+    const n = num(); if (n != null) return n;
+    if (peek() === "(") { i++; const v = expr(); if (peek() === ")") i++; return v; } // fehlende ")" am Ende tolerieren
+    const id = ident();
+    if (id != null) {
+      if (id in vars) return vars[id];
+      if (id in MATH_CONST) return MATH_CONST[id];
+      if (id in MATH_FN) {
+        if (peek() === "(") { i++; const v = expr(); if (peek() === ")") i++; return MATH_FN[id](v); }
+        return MATH_FN[id](power());
+      }
+      throw new CalcError(`Unbekannt: ${id}`);
+    }
+    throw new CalcError("Ungültige Eingabe");
+  }
+  if (!s) throw new CalcError("");
+  const v = expr();
+  if (i < s.length) throw new CalcError("Ungültige Eingabe");
+  if (!isFinite(v)) throw new CalcError("Ergebnis zu groß");
+  return v;
+}
+const fmtNum = v => Math.abs(v) >= 1e15 || (v !== 0 && Math.abs(v) < 1e-9) ? v.toExponential(8).replace(".", ",") : Number(v.toPrecision(14)).toLocaleString("de-DE", { maximumFractionDigits: 12 });
+
+function viewRechner(app) {
+  const mode = store.get("calc.mode", "calc");
+  app.innerHTML = `
+    <div class="seg" style="margin-bottom:12px" role="group"><button data-m="calc">Rechner</button><button data-m="quick">Schnellrechnen</button></div>
+    <div id="calcPane"></div>`;
+  const pane = $("#calcPane");
+  const setMode = m => {
+    store.set("calc.mode", m);
+    $$(".seg button", app).forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+    m === "calc" ? calcMode(pane) : quickMode(pane);
+  };
+  $$(".seg button", app).forEach(b => b.onclick = () => setMode(b.dataset.m));
+  setMode(mode);
+}
+function calcMode(pane) {
+  const KEYS = ["(", ")", "%", "⌫", "C", "7", "8", "9", "÷", "√", "4", "5", "6", "×", "^", "1", "2", "3", "−", "π", "0", ",", "+/−", "+", "="];
+  pane.innerHTML = `
+    <div class="card">
+      <div class="calc-display"><input id="expr" type="text" inputmode="decimal" autocomplete="off" aria-label="Rechnung" placeholder="0"><div class="res" id="res"></div></div>
+      <div class="keys">${KEYS.map(k => `<button class="${"÷×−+^%()√".includes(k) ? "op" : k === "=" ? "eq" : ""}" data-k="${k}">${k}</button>`).join("")}</div>
+    </div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Verlauf</h3><button class="btn text" id="clr">Verlauf löschen</button></div><div class="hist" id="hist"></div></div>`;
+  const inp = $("#expr"), res = $("#res");
+  let hist = store.get("calc.hist", []);
+  const drawHist = () => $("#hist").innerHTML = hist.length ? hist.map((h, i) => `<div data-i="${i}" style="cursor:pointer"><span class="muted">${esc(h.e)}</span><b>${esc(h.r)}</b></div>`).join("") : "<p class='muted' style='margin:8px 0 0'>Noch nichts gerechnet.</p>";
+  drawHist();
+  const preview = () => { try { res.textContent = inp.value ? "= " + fmtNum(evaluate(inp.value)) : ""; res.classList.remove("err"); } catch { res.textContent = ""; } };
+  const commit = () => {
+    try {
+      const v = evaluate(inp.value), r = fmtNum(v);
+      hist.unshift({ e: inp.value, r }); hist = hist.slice(0, 50); store.set("calc.hist", hist); drawHist();
+      inp.value = String(v).replace(".", ","); res.textContent = "";
+    } catch (e) { res.textContent = e.message || "Ungültige Eingabe"; res.classList.add("err"); }
+  };
+  const insert = t => {
+    const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a;
+    inp.value = inp.value.slice(0, a) + t + inp.value.slice(b); inp.setSelectionRange(a + t.length, a + t.length); preview();
+  };
+  $$(".keys button", pane).forEach(b => b.onclick = () => {
+    const k = b.dataset.k;
+    if (k === "=") commit();
+    else if (k === "C") { inp.value = ""; preview(); }
+    else if (k === "⌫") { const a = inp.selectionStart ?? inp.value.length, e = inp.selectionEnd ?? a; if (a !== e) { inp.value = inp.value.slice(0, a) + inp.value.slice(e); inp.setSelectionRange(a, a); } else if (a > 0) { inp.value = inp.value.slice(0, a - 1) + inp.value.slice(a); inp.setSelectionRange(a - 1, a - 1); } preview(); }
+    else if (k === "+/−") { inp.value = inp.value.startsWith("−(") && inp.value.endsWith(")") ? inp.value.slice(2, -1) : inp.value ? `−(${inp.value})` : "−"; preview(); }
+    else if (k === "√") insert("√(");
+    else insert(k);
+  });
+  inp.oninput = preview;
+  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); commit(); } };
+  $("#hist").onclick = e => { const d = e.target.closest("[data-i]"); if (d) { inp.value = hist[d.dataset.i].e; preview(); } };
+  $("#clr").onclick = () => { hist = []; store.set("calc.hist", hist); drawHist(); };
+}
+function quickMode(pane) {
+  pane.innerHTML = `
+    <div class="hint">Gib eine ganze Rechnung ein und schreibe „c“ an die Stelle, an der die eingegebene Zahl eingesetzt wird (z. B. „c × 19 + 5“). Danach wird jede Zahl, die du eingibst und bestätigst, für c eingesetzt und sofort berechnet. Der Verlauf sammelt sich unten.</div>
+    <div class="card">
+      <label class="fld" for="qf">Rechnung mit c</label>
+      <input id="qf" type="text" autocomplete="off" placeholder="z. B. c × 1,19" class="mono">
+      <label class="fld" for="qc">Zahl für c</label>
+      <div class="row" style="flex-wrap:nowrap"><input id="qc" type="text" inputmode="decimal" autocomplete="off" placeholder="Zahl eingeben und bestätigen" class="mono"><button class="btn" id="qgo">=</button></div>
+      <p id="qerr" class="err" style="margin:8px 0 0;min-height:1.5em"></p>
+    </div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Verlauf</h3><button class="btn text" id="qclr">Verlauf löschen</button></div><div class="hist" id="qhist"></div></div>`;
+  const f = $("#qf"), c = $("#qc");
+  f.value = store.get("quick.formula", "");
+  let hist = store.get("quick.hist", []);
+  const draw = () => $("#qhist").innerHTML = hist.length ? hist.map(h => `<div><span class="muted">c = ${esc(h.c)}</span><b>${esc(h.r)}</b></div>`).join("") : "<p class='muted' style='margin:8px 0 0'>Noch nichts gerechnet.</p>";
+  draw();
+  f.oninput = () => store.set("quick.formula", f.value);
+  const go = () => {
+    $("#qerr").textContent = "";
+    if (!f.value.trim()) { $("#qerr").textContent = "Rechnung eingeben"; f.focus(); return; }
+    if (!/c/i.test(f.value.replace(/cos/gi, ""))) { $("#qerr").textContent = "Die Rechnung enthält kein „c“."; return; }
+    try {
+      const cv = evaluate(c.value);
+      const r = fmtNum(evaluate(f.value, { c: cv }));
+      hist.unshift({ c: fmtNum(cv), r }); hist = hist.slice(0, 100); store.set("quick.hist", hist); draw();
+      c.value = ""; c.focus();
+    } catch (e) { $("#qerr").textContent = e.message || "Ungültige Eingabe"; }
+  };
+  $("#qgo").onclick = go;
+  c.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+  $("#qclr").onclick = () => { hist = []; store.set("quick.hist", hist); draw(); };
+}
+
+viewRechner($("#app"));
+})();
+</script>
+</body>
+</html>

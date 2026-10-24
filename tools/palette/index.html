@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Farbe & Palette · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.sw{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);cursor:pointer}
+.sw[aria-pressed="true"]{outline:3px solid var(--text);outline-offset:2px}
+.tones{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:6px;margin-top:8px}
+.tone{height:56px;border-radius:10px;border:0;box-shadow:inset 0 0 0 1px var(--border);cursor:pointer;font-family:var(--mono);font-size:11px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Farbe & Palette</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Farbe & Palette
+   ========================================================= */
+const PRESETS = [["Navy", "#1F3A5F"], ["Lila", "#6750A4"], ["Blau", "#1B6EF3"], ["Grün", "#2E7D32"], ["Orange", "#E8710A"], ["Rot", "#C0362C"], ["Petrol", "#00696D"], ["Pink", "#B02A6F"], ["Bernstein", "#8C5000"]];
+function tonalPalette(hex, satScale = 1) {
+  const [h, s] = rgbToHsl(hexToRgb(hex));
+  return [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 100].map(t => [t, hslToHex(h, Math.min(100, s * satScale), t)]);
+}
+function viewPalette(app) {
+  app.innerHTML = `
+    <div class="hint">Die Systemfarbe deines Handys kann eine Webseite nicht ändern. Hier wählst du die Akzentfarbe dieser Web-App und bekommst die passenden Farbtöne im Stil von Material You. Tippe auf einen Farbton, um den Hex-Wert zu kopieren.</div>
+    <div class="card">
+      <h3>Akzentfarbe</h3>
+      <div class="swatches" id="sw">${PRESETS.map(([n, c]) => `<button class="sw" style="background:${c}" data-c="${c}" title="${n}" aria-label="${n}"></button>`).join("")}</div>
+      <div class="row" style="margin-top:12px">
+        <input type="color" id="pick" style="width:56px;height:44px;border:0;background:none;flex:none" aria-label="Eigene Farbe">
+        <input type="text" id="hex" class="mono" maxlength="7" aria-label="Hex-Wert" style="max-width:140px">
+        <button class="btn text" id="reset">Zurücksetzen</button>
+      </div>
+    </div>
+    <div class="card"><h3>Primär</h3><div class="tones" id="tP"></div></div>
+    <div class="card"><h3>Sekundär</h3><div class="tones" id="tS"></div></div>
+    <div class="card"><h3>Neutral</h3><div class="tones" id="tN"></div></div>`;
+  const tones = (el, list) => $(el).innerHTML = list.map(([t, c]) => `<button class="tone" style="background:${c};color:${t > 50 ? "#000" : "#fff"}" data-c="${c}" title="${c}">${t}</button>`).join("");
+  const draw = () => {
+    const c = settings.accent;
+    $("#pick").value = c.toLowerCase(); $("#hex").value = c.toUpperCase();
+    $$("#sw .sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.c.toLowerCase() === c.toLowerCase()));
+    tones("#tP", tonalPalette(c)); tones("#tS", tonalPalette(c, .35)); tones("#tN", tonalPalette(c, .08));
+  };
+  const set = c => { settings.accent = c; saveSettings(); draw(); };
+  $("#sw").onclick = e => { const b = e.target.closest(".sw"); if (b) set(b.dataset.c); };
+  $("#pick").oninput = e => set(e.target.value);
+  $("#hex").onchange = e => { let v = e.target.value.trim(); if (!v.startsWith("#")) v = "#" + v; if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) set(v.length === 4 ? "#" + v.slice(1).replace(/./g, "$&$&") : v); else { toast("Ungültiger Hex-Wert"); draw(); } };
+  $("#reset").onclick = () => set("#1F3A5F");
+  app.addEventListener("click", e => { const t = e.target.closest(".tone"); if (t) copy(t.dataset.c.toUpperCase()); });
+  draw();
+}
+
+viewPalette($("#app"));
+})();
+</script>
+</body>
+</html>

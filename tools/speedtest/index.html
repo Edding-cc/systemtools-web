@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Speedtest · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Speedtest</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Speedtest (M-Lab NDT7 + Cloudflare)
+   ========================================================= */
+function viewSpeedtest(app) {
+  app.innerHTML = `
+    <div class="hint">Misst deine Internetgeschwindigkeit: zuerst über M-Lab (NDT7, Durchschnittsleistung), dann über Cloudflare (Höchstleistung). Dauert insgesamt etwa 30–40 s. Für ein sauberes Ergebnis andere Downloads pausieren. Die Messung verbraucht Datenvolumen (je nach Leitung einige hundert MB).</div>
+    <div class="card" style="text-align:center">
+      <div class="muted" id="stPhase">Bereit</div>
+      <div class="big" id="stLive">–</div>
+      <div style="margin-top:12px"><button class="btn" id="stGo">Speedtest starten</button></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Durchschnitt (M-Lab)</h3><div id="stMlab" class="muted">–</div></div>
+      <div class="card"><h3>Höchst (Cloudflare)</h3><div id="stCf" class="muted">–</div></div>
+    </div>
+    <p class="muted" style="font-size:13px">Messserver: <a href="https://www.measurementlab.net/" target="_blank" rel="noopener">Measurement Lab</a> und <a href="https://speed.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a>. Bei M-Lab werden deine IP-Adresse und die Messwerte gemäß deren Datenschutzerklärung veröffentlicht.</p>`;
+  let abort = null;
+  onLeave(() => abort?.abort());
+  const live = v => $("#stLive").innerHTML = v > 0 ? `${nf(v / 1e6, v >= 1e8 ? 0 : 1)} <span class="unit">Mbit/s</span>` : "–";
+  const phase = t => $("#stPhase").textContent = t;
+  const res = (el, o) => $(el).innerHTML = `<div class="row" style="justify-content:space-around;gap:16px"><div><div class="muted">↓ Download</div><b style="font-size:22px">${fmtBits(o.down)}</b></div><div><div class="muted">↑ Upload</div><b style="font-size:22px">${fmtBits(o.up)}</b></div></div>${o.ping != null ? `<div class="muted" style="margin-top:8px">Ping ${nf(o.ping, 0)} ms</div>` : ""}${o.where ? `<div class="muted" style="font-size:13px">${esc(o.where)}</div>` : ""}`;
+  $("#stGo").onclick = async () => {
+    if (abort) { abort.abort(); return; }
+    abort = new AbortController();
+    const sig = abort.signal, btn = $("#stGo");
+    btn.textContent = "Abbrechen"; btn.classList.add("tonal");
+    $("#stMlab").textContent = "…"; $("#stCf").textContent = "–";
+    try {
+      const m = { down: 0, up: 0 };
+      phase("M-Lab: Server suchen …");
+      const srv = await ndt7Locate(sig);
+      m.where = `${srv.location?.city || ""}, ${srv.location?.country || ""}`.replace(/^, |, $/g, "");
+      phase("M-Lab: Download ↓"); m.down = await ndt7Download(srv.urls["wss:///ndt/v7/download"], sig, live);
+      res("#stMlab", m);
+      phase("M-Lab: Upload ↑"); live(0); m.up = await ndt7Upload(srv.urls["wss:///ndt/v7/upload"], sig, live);
+      res("#stMlab", m);
+    } catch (e) { if (sig.aborted) { finish("Abgebrochen"); return; } $("#stMlab").innerHTML = `<span class="err">Fehlgeschlagen: ${esc(e.message)}</span>`; }
+    try {
+      $("#stCf").textContent = "…"; live(0);
+      const r = await cloudflareTest(sig, phase, live);
+      res("#stCf", r);
+      finish("Fertig");
+    } catch (e) { if (sig.aborted) { finish("Abgebrochen"); return; } $("#stCf").innerHTML = `<span class="err">Fehlgeschlagen: ${esc(e.message)}</span>`; finish("Fertig mit Fehlern"); }
+    function finish(t) { phase(t); abort = null; btn.textContent = "Speedtest starten"; btn.classList.remove("tonal"); if (t !== "Fertig") live(0); $("#stLive").innerHTML = "–"; }
+  };
+}
+async function ndt7Locate(sig) {
+  const r = await fetch("https://locate.measurementlab.net/v2/nearest/ndt/ndt7?client_name=systemtools-web", { signal: sig });
+  if (!r.ok) throw new Error("M-Lab-Server nicht erreichbar (" + r.status + ")");
+  const j = await r.json();
+  if (!j.results?.length) throw new Error("Kein M-Lab-Server verfügbar");
+  return j.results[0];
+}
+function ndt7Download(url, sig, live) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, "net.measurementlab.ndt.v7");
+    ws.binaryType = "arraybuffer";
+    let start = 0, bytes = 0, last = 0, done = false;
+    const end = () => { if (done) return; done = true; try { ws.close(); } catch {} const s = (performance.now() - start) / 1000; resolve(start && s > 0 ? bytes * 8 / s : 0); };
+    const timer = setTimeout(end, 12000);
+    sig.addEventListener("abort", () => { clearTimeout(timer); done = true; try { ws.close(); } catch {} reject(new Error("abgebrochen")); }, { once: true });
+    ws.onopen = () => { start = performance.now(); };
+    ws.onmessage = ev => {
+      bytes += typeof ev.data === "string" ? ev.data.length : ev.data.byteLength;
+      const now = performance.now();
+      if (now - last > 250) { last = now; live(bytes * 8 / ((now - start) / 1000)); }
+    };
+    ws.onclose = () => { clearTimeout(timer); end(); };
+    ws.onerror = () => { clearTimeout(timer); if (!done) { done = true; reject(new Error("Verbindung zu M-Lab fehlgeschlagen")); } };
+  });
+}
+function ndt7Upload(url, sig, live) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, "net.measurementlab.ndt.v7");
+    let start = 0, sent = 0, serverBytes = 0, serverSecs = 0, done = false, msg = new Uint8Array(8192);
+    const DURATION = 10000;
+    const rate = () => {
+      if (serverBytes && serverSecs) return serverBytes * 8 / serverSecs;
+      const s = (performance.now() - start) / 1000; return s > 0 ? (sent - ws.bufferedAmount) * 8 / s : 0;
+    };
+    const end = () => { if (done) return; done = true; try { ws.close(); } catch {} resolve(rate()); };
+    sig.addEventListener("abort", () => { done = true; try { ws.close(); } catch {} reject(new Error("abgebrochen")); }, { once: true });
+    ws.onmessage = ev => {
+      if (typeof ev.data !== "string") return;
+      try { const m = JSON.parse(ev.data); if (m.TCPInfo?.BytesReceived && m.TCPInfo?.ElapsedTime) { serverBytes = m.TCPInfo.BytesReceived; serverSecs = m.TCPInfo.ElapsedTime / 1e6; } } catch {}
+    };
+    ws.onopen = () => {
+      start = performance.now();
+      let lastUi = 0;
+      const pump = () => {
+        if (done) return;
+        const now = performance.now();
+        if (now - start > DURATION) return end();
+        // Nachrichtengröße wächst mit dem Durchsatz (NDT7-Spezifikation: bis 8 MiB, Faktor 16)
+        if (msg.length < (1 << 23) && msg.length <= sent / 16) msg = new Uint8Array(msg.length * 2);
+        while (ws.bufferedAmount < 7 * msg.length && ws.readyState === 1) { ws.send(msg); sent += msg.length; }
+        if (now - lastUi > 250) { lastUi = now; live(rate()); }
+        setTimeout(pump, 0);
+      };
+      pump();
+    };
+    ws.onclose = () => end();
+    ws.onerror = () => { if (!done) { done = true; reject(new Error("Verbindung zu M-Lab fehlgeschlagen")); } };
+  });
+}
+async function cloudflareTest(sig, phase, live) {
+  const base = "https://speed.cloudflare.com";
+  let colo = "";
+  try { const t = await (await fetch(base + "/cdn-cgi/trace", { signal: sig })).text(); colo = /colo=(\w+)/.exec(t)?.[1] || ""; } catch (e) { if (sig.aborted) throw e; }
+  phase("Cloudflare: Ping");
+  const pings = [];
+  for (let k = 0; k < 8; k++) {
+    const t0 = performance.now();
+    const r = await fetch(`${base}/__down?bytes=0&r=${Math.random()}`, { signal: sig, cache: "no-store" });
+    await r.arrayBuffer();
+    let ms = performance.now() - t0;
+    const st = /dur=([\d.]+)/.exec(r.headers.get("server-timing") || "");
+    if (st) ms -= parseFloat(st[1]);
+    pings.push(ms);
+  }
+  pings.sort((a, b) => a - b);
+  const ping = pings[Math.floor(pings.length / 2)];
+  const pct90 = a => { a = a.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * .9))] || 0; };
+
+  phase("Cloudflare: Download ↓");
+  const down = [];
+  const t0all = performance.now();
+  outer: for (const [size, n] of [[1e5, 4], [1e6, 4], [1e7, 3], [2.5e7, 3], [1e8, 2]]) {
+    for (let k = 0; k < n; k++) {
+      const r = await fetch(`${base}/__down?bytes=${size}&r=${Math.random()}`, { signal: sig, cache: "no-store" });
+      const reader = r.body.getReader();
+      let got = 0, t1 = 0;
+      for (;;) {
+        const { done, value } = await reader.read(); if (done) break;
+        if (!t1) t1 = performance.now();
+        got += value.length;
+        const s = (performance.now() - t1) / 1000; if (s > .2) live(got * 8 / s);
+      }
+      const secs = (performance.now() - t1) / 1000;
+      if (secs > .05) down.push(got * 8 / secs);
+      if (secs > 6 || performance.now() - t0all > 15000) break outer;
+    }
+  }
+  phase("Cloudflare: Upload ↑"); live(0);
+  const up = [];
+  const t0up = performance.now();
+  outer2: for (const [size, n] of [[1e5, 3], [1e6, 3], [1e7, 3], [2.5e7, 2], [5e7, 2]]) {
+    const body = new Uint8Array(size);
+    for (let k = 0; k < n; k++) {
+      const t1 = performance.now();
+      const r = await fetch(`${base}/__up?r=${Math.random()}`, { method: "POST", body, signal: sig, cache: "no-store" });
+      await r.arrayBuffer();
+      const total = (performance.now() - t1) / 1000;
+      // Server-Timing = Zeit, die der Server mit dem Empfangen verbracht hat; sonst Gesamtzeit minus Ping
+      const st = /cfSpeedWorker;dur=([\d.]+)/.exec(r.headers.get("server-timing") || "");
+      const secs = st && +st[1] > 1 ? +st[1] / 1000 : Math.max(total / 2, total - ping / 1000);
+      if (secs > .05) { up.push(size * 8 / secs); live(size * 8 / secs); }
+      if (total > 6 || performance.now() - t0up > 15000) break outer2;
+    }
+  }
+  return { down: pct90(down), up: pct90(up), ping, where: colo ? "Rechenzentrum " + colo : "" };
+}
+
+viewSpeedtest($("#app"));
+})();
+</script>
+</body>
+</html>
