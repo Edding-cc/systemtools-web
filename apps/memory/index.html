@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memory · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;transition:background .15s}
+.stats>div.on{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#mg{--rows:4;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:min(100%,440px,max(248px,calc((100dvh - 300px) * 4 / var(--rows))));margin:0 auto 12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#mg .k{aspect-ratio:1;border:0;padding:0;border-radius:12px;cursor:pointer;display:grid;place-items:center;color:var(--text);background:color-mix(in srgb,var(--accent) 75%,var(--surface-2));transition:transform .15s,opacity .2s}
+:root[data-dark="1"] #mg .k{background:color-mix(in srgb,var(--accent) 55%,var(--surface-2))}
+#mg .k.up,:root[data-dark="1"] #mg .k.up{background:var(--surface-2);box-shadow:inset 0 0 0 2px var(--border);animation:flip .18s ease-out}
+#mg .k.gone{opacity:.35;animation:none}
+#mg .k svg{width:70%;height:70%}
+#mg .k:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@keyframes flip{from{transform:scaleX(.2)}to{transform:scaleX(1)}}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Memory</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="mSize"><button data-s="8">16 Karten</button><button data-s="10">20 Karten</button><button data-s="12">24 Karten</button></div>
+  <div class="chips" id="mPl"><button data-p="1">1 Spieler</button><button data-p="2">2 Spieler</button></div>
+  <div class="stats" id="mStats"></div>
+  <div id="mg" aria-label="Karten"></div>
+  <p class="msg" id="mMsg" role="status"></p>
+  <div class="ctl"><button id="mNew2" class="ac">Neu mischen</button><button id="mPeek" class="tonal" aria-expanded="false">Bestzeiten</button></div>
+  <div class="card" id="mBestCard" hidden><h3>Bestwerte (1 Spieler)</h3><div id="mBestList"></div></div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Memory
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+const SH = [
+  '<circle cx="12" cy="12" r="8"/>', '<rect x="4" y="4" width="16" height="16" rx="2"/>', '<path d="M12 3l9 17H3z"/>',
+  '<path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3 5.8 21l1.6-7L2 9.2l7.1-.6z"/>', '<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/>',
+  '<path d="M12 2l9 10-9 10-9-10z"/>', '<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>', '<path d="M15 3a9 9 0 1 0 6 15A8 8 0 0 1 15 3z"/>',
+  '<path d="M12 2l8.7 5v10L12 22l-8.7-5V7z"/>', '<path d="M3 12a9 9 0 0 1 18 0z"/><rect x="11" y="12" width="2" height="9"/>',
+  '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"/>', '<path d="M4 4h7v7H4zM13 13h7v7h-7z"/>'
+];
+const CL = ["#e0483e", "#3a6fe0", "#43b047", "#e8a91a", "#d14f9c", "#29a0c6", "#8e5bd1", "#ee7a22", "#00897b", "#795548", "#5c6bc0", "#c0ca33"];
+const SIZES = [8, 10, 12];
+let pairs = store.get("mem.size", 8), players = store.get("mem.pl", 1);
+const best = store.get("mem.best", {});
+if (!SIZES.includes(pairs)) pairs = 8;
+if (players !== 1 && players !== 2) players = 1;
+let deck, open, lock, moves, found, t0, timer = 0, flipBack = 0, turn, pts, started;
+onLeave(() => { clearInterval(timer); clearTimeout(flipBack); });
+
+function newGame() {
+  const ids = shuffle(Array.from({ length: pairs * 2 }, (_, i) => i >> 1));
+  deck = ids.map(id => ({ id, up: false, done: false }));
+  open = []; lock = false; moves = 0; found = 0; turn = 0; pts = [0, 0]; started = false;
+  clearInterval(timer); clearTimeout(flipBack);
+  $("#mMsg").textContent = players === 2 ? "Spieler 1 beginnt" : "";
+  layout(); stats(); chips(); bestList();
+}
+function chips() {
+  $$("#mSize button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.s === pairs));
+  $$("#mPl button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.p === players));
+}
+function layout() {
+  const g = $("#mg");
+  g.style.setProperty("--rows", deck.length / 4);
+  g.innerHTML = deck.map((_, i) => `<button class="k" data-i="${i}" aria-label="Karte ${i + 1}"></button>`).join("");
+  deck.forEach((_, i) => draw(i));
+}
+function draw(i) {
+  const k = deck[i], el = $("#mg").children[i];
+  el.className = "k" + (k.up || k.done ? " up" : "") + (k.done ? " gone" : "");
+  el.innerHTML = k.up || k.done ? `<svg viewBox="0 0 24 24" fill="${CL[k.id]}" aria-hidden="true">${SH[k.id]}</svg>` : "";
+  el.setAttribute("aria-label", k.done ? "Gefundenes Paar" : k.up ? "Aufgedeckte Karte" : "Verdeckte Karte " + (i + 1));
+}
+const secs = () => started ? Math.floor((Date.now() - t0) / 1000) : 0;
+function stats() {
+  $("#mStats").innerHTML = players === 2
+    ? `<div class="${turn === 0 ? "on" : ""}"><b>${pts[0]}</b><span>Spieler 1</span></div><div class="${turn === 1 ? "on" : ""}"><b>${pts[1]}</b><span>Spieler 2</span></div>`
+    : `<div><b>${moves}</b><span>Züge</span></div><div><b id="mT">${secs()}</b><span>Sekunden</span></div><div><b>${best[pairs] ? best[pairs].m + " / " + best[pairs].t + " s" : "–"}</b><span>Beste (Züge/Zeit)</span></div>`;
+}
+function bestList() {
+  $("#mBestList").innerHTML = kv(Object.fromEntries(SIZES.map(s => [s * 2 + " Karten", best[s] ? `${best[s].m} Züge, ${best[s].t} s` : "–"])));
+}
+function flip(i) {
+  const k = deck[i];
+  if (lock || k.up || k.done) return;
+  if (!started) {
+    started = true; t0 = Date.now();
+    timer = setInterval(() => { const e = $("#mT"); if (e) e.textContent = secs(); }, 500);
+  }
+  k.up = true; draw(i); open.push(i);
+  if (open.length < 2) return;
+  moves++;
+  const [ia, ib] = open, a = deck[ia], b = deck[ib];
+  if (a.id === b.id) {
+    a.done = b.done = true; a.up = b.up = false; draw(ia); draw(ib); open = []; found++; pts[turn]++;
+    if (found === pairs) finish();
+    stats();
+  } else {
+    lock = true;
+    flipBack = setTimeout(() => {
+      a.up = b.up = false; draw(ia); draw(ib); open = []; lock = false;
+      if (players === 2) { turn = 1 - turn; $("#mMsg").textContent = "Spieler " + (turn + 1) + " ist dran"; }
+      stats();
+    }, 850);
+    stats();
+  }
+}
+function finish() {
+  clearInterval(timer);
+  const t = Math.round((Date.now() - t0) / 1000);
+  if (players === 2) {
+    $("#mMsg").textContent = pts[0] === pts[1] ? "Unentschieden!" : "Spieler " + (pts[0] > pts[1] ? 1 : 2) + " gewinnt!";
+  } else {
+    const b = best[pairs], rec = !b || moves < b.m || (moves === b.m && t < b.t);
+    if (rec) { best[pairs] = { m: moves, t }; store.set("mem.best", best); bestList(); }
+    $("#mMsg").textContent = "Geschafft: " + moves + " Züge in " + t + " s" + (rec ? " – Rekord!" : "");
+  }
+}
+$("#mg").onclick = e => { const k = e.target.closest(".k"); if (k) flip(+k.dataset.i); };
+$("#mSize").onclick = e => { const b = e.target.closest("button"); if (b) { pairs = +b.dataset.s; store.set("mem.size", pairs); newGame(); } };
+$("#mPl").onclick = e => { const b = e.target.closest("button"); if (b) { players = +b.dataset.p; store.set("mem.pl", players); newGame(); } };
+$("#mNew2").onclick = newGame;
+$("#mPeek").onclick = e => {
+  const c = $("#mBestCard"); c.hidden = !c.hidden;
+  e.currentTarget.setAttribute("aria-expanded", !c.hidden);
+  if (!c.hidden) c.scrollIntoView({ behavior: "smooth", block: "nearest" });
+};
+newGame();
+})();
+</script>
+</body>
+</html>

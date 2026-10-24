@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verknüpfungen · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Verknüpfungen</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Verknüpfungen
+   ========================================================= */
+function viewVerknuepfungen(app) {
+  let items = store.get("shortcuts", []);
+    app.innerHTML = `
+    <div class="hint">Sammle Links und Texte, die du oft brauchst. Sie bleiben nur in diesem Browser gespeichert. Jedes Werkzeug hat auch einen eigenen Link. Öffnest du ihn und wählst im Browsermenü „Zum Startbildschirm hinzufügen“, landet das Werkzeug direkt auf dem Startbildschirm.</div>
+    <div class="card">
+      <h3>Neue Verknüpfung</h3>
+      <div class="seg" role="group" id="type"><button data-t="link" aria-pressed="true">Link</button><button data-t="text">Text</button><button data-t="tool">Werkzeug</button></div>
+      <label class="fld" for="sName">Name</label><input type="text" id="sName" placeholder="z. B. Router">
+      <div id="valWrap"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="sAdd">Hinzufügen</button></div>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Suchen …">
+    <div class="card" id="sList"></div>`;
+  let type = "link";
+  const valField = () => {
+    $("#valWrap").innerHTML = type === "link" ? `<label class="fld" for="sVal">Adresse</label><input type="url" id="sVal" placeholder="https://…">`
+      : type === "text" ? `<label class="fld" for="sVal">Text</label><textarea id="sVal" rows="3" placeholder="Wird beim Antippen kopiert"></textarea>`
+      : `<label class="fld" for="sVal">Werkzeug</label><select id="sVal">${TOOLS.map(t => `<option value="${t.id}">${t.title}</option>`).join("")}</select>`;
+    if (type === "tool") $("#sVal").onchange = e => { if (!$("#sName").value) $("#sName").value = TOOLS.find(t => t.id === e.target.value).title; };
+  };
+  valField();
+  $("#type").onclick = e => { const b = e.target.closest("button"); if (!b) return; type = b.dataset.t; $$("#type button").forEach(x => x.setAttribute("aria-pressed", x === b)); valField(); };
+  const draw = (q = $("#q").value.trim().toLowerCase()) => {
+    const hits = items.map((it, i) => [it, i]).filter(([it]) => !q || (it.name + " " + it.value).toLowerCase().includes(q));
+    const icon = t => ({ link: ICONS.shortcut, text: ICONS.calc.replace(/<rect.*?\/>/, '<path d="M4 6h16M4 12h16M4 18h10"/>'), tool: ICONS.info })[t];
+    $("#sList").innerHTML = hits.length ? hits.map(([it, i]) => {
+      const tool = it.type === "tool" && TOOLS.find(t => t.id === it.value);
+      const sub = it.type === "tool" ? (tool ? new URL(toolHref(tool), location.href).href : "Werkzeug fehlt") : it.value;
+      return `<div class="list-item"><div class="ic" style="width:36px;height:36px;display:grid;place-items:center;flex:none">${tool ? ICONS[tool.icon] : icon(it.type)}</div>
+        <div class="grow"><b>${esc(it.name)}</b><small>${esc(sub)}</small></div>
+        <button class="btn tonal" data-a="use" data-i="${i}">${it.type === "text" ? "Kopieren" : "Öffnen"}</button>
+        <button class="iconbtn" data-a="del" data-i="${i}" aria-label="Löschen">${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`;
+    }).join("") : `<p class="muted" style="margin:0">${items.length ? "Nichts gefunden." : "Noch keine Verknüpfungen."}</p>`;
+  };
+  draw();
+  $("#q").oninput = () => draw();
+  $("#sAdd").onclick = () => {
+    const name = $("#sName").value.trim(); let value = $("#sVal").value.trim();
+    if (!value) { toast(type === "link" ? "Adresse eingeben" : "Text eingeben"); return; }
+    if (type === "link" && !/^[a-z][a-z0-9+.-]*:/i.test(value)) value = "https://" + value;
+    if (type === "link") { try { const u = new URL(value); if (!/^(https?|mailto|tel|geo|sms):$/.test(u.protocol)) throw 0; } catch { toast("Ungültige Adresse"); return; } }
+    items.unshift({ type, name: name || (type === "link" ? value.replace(/^https?:\/\//, "") : value.slice(0, 30)), value });
+    store.set("shortcuts", items); $("#sName").value = ""; valField(); draw();
+  };
+  $("#sList").onclick = e => {
+    const b = e.target.closest("[data-a]"); if (!b) return;
+    const it = items[b.dataset.i];
+    if (b.dataset.a === "del") { if (confirm(`„${it.name}“ löschen?`)) { items.splice(b.dataset.i, 1); store.set("shortcuts", items); draw(); } return; }
+    if (it.type === "text") copy(it.value);
+    else if (it.type === "tool") { const t = TOOLS.find(t => t.id === it.value); if (t) location.href = toolHref(t); else toast("Werkzeug fehlt"); }
+    else window.open(it.value, "_blank", "noopener");
+  };
+}
+
+viewVerknuepfungen($("#app"));
+})();
+</script>
+</body>
+</html>

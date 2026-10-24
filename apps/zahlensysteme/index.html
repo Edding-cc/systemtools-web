@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zahlensysteme · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+.nb input{font-family:var(--mono);font-size:18px}
+#zBits{font-family:var(--mono);font-size:15px;word-break:break-all;line-height:1.7}
+#zPlace th{text-align:center;padding-right:0}
+#zPlace td{text-align:center;font-family:var(--mono);font-size:18px;padding-right:0}
+#zPlace td.on{font-weight:700;color:var(--text)}
+#zPlace td.off{opacity:.45}
+#qTask{font-size:30px;font-weight:700;font-family:var(--mono);word-break:break-all;margin:4px 0}
+#qAns{font-size:22px;text-align:center}
+#qFb{min-height:1.5em;font-weight:600;margin:8px 0 0}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Zahlensysteme</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="zMode" role="group" style="margin-bottom:12px"><button data-m="conv">Umrechnen</button><button data-m="quiz">Üben</button></div>
+<div id="zConv">
+  <div class="card nb">
+    <label class="fld" for="zDec">Dezimal (10)</label><input type="text" inputmode="numeric" id="zDec" data-b="10" autocomplete="off" spellcheck="false">
+    <label class="fld" for="zBin">Binär (2)</label><input type="text" inputmode="numeric" id="zBin" data-b="2" autocomplete="off" spellcheck="false">
+    <label class="fld" for="zHex">Hexadezimal (16)</label><input type="text" id="zHex" data-b="16" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label class="fld" for="zOct">Oktal (8)</label><input type="text" inputmode="numeric" id="zOct" data-b="8" autocomplete="off" spellcheck="false">
+    <p class="err" id="zErr" style="margin:8px 0 0;min-height:1.5em"></p>
+  </div>
+  <div class="card"><h3>Bits</h3><div id="zBits"></div></div>
+  <div class="card"><h3>Stellenwerte (8 Bit)</h3><table class="tbl" id="zPlace"></table></div>
+</div>
+<div id="zQuiz" hidden>
+  <div class="card">
+    <label class="fld">Aufgabe</label><div class="chips" id="qDir"></div>
+    <label class="fld">Zahlenbereich</label><div class="chips" id="qRange"><button data-r="4">4 Bit (0–15)</button><button data-r="8">8 Bit (0–255)</button><button data-r="16">16 Bit</button></div>
+  </div>
+  <div class="card center">
+    <div class="muted" id="qQ"></div><div id="qTask"></div>
+    <input type="text" id="qAns" class="mono mt" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Antwort">
+    <p id="qFb" role="status"></p>
+  </div>
+  <div class="ctl"><button id="qSkip" class="tonal">Lösung</button><button id="qCheck" class="ac">Prüfen</button><button id="qNext" class="tonal">Weiter</button></div>
+  <div class="stats"><div><b id="qOk">0</b><span>Richtig</span></div><div><b id="qBad">0</b><span>Falsch</span></div><div><b id="qStreak">0</b><span>Serie</span></div><div><b id="qBest">0</b><span>Beste Serie</span></div></div>
+  <button class="btn text" id="qReset">Statistik zurücksetzen</button>
+</div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Zahlensysteme
+   ========================================================= */
+const rnd = n => { const lim = 4294967296 - (4294967296 % n), a = new Uint32Array(1); let x; do { crypto.getRandomValues(a); x = a[0]; } while (x >= lim); return x % n; };
+const MAX = Number.MAX_SAFE_INTEGER;
+const RE = { 2: /^[01]+$/, 8: /^[0-7]+$/, 10: /^\d+$/, 16: /^[0-9a-f]+$/i };
+const fields = $$(".nb input");
+const clean = (v, b) => { v = v.replace(/[\s_.']/g, ""); if (b === 16) v = v.replace(/^0x/i, ""); if (b === 2) v = v.replace(/^0b/i, ""); return v; };
+const group = (s, n) => { let o = ""; while (s.length > n) { o = " " + s.slice(-n) + o; s = s.slice(0, -n); } return s + o; };
+function update(src) {
+  const b = +src.dataset.b, v = clean(src.value, b);
+  $("#zErr").textContent = "";
+  if (!v) { fields.forEach(f => { if (f !== src) f.value = ""; }); bits(null); return; }
+  if (!RE[b].test(v)) { $("#zErr").textContent = "Ungültige Ziffer für Basis " + b; return; }
+  const n = parseInt(v, b);
+  if (n > MAX) { $("#zErr").textContent = "Zahl zu groß (max. 2^53 − 1)"; return; }
+  fields.forEach(f => {
+    const fb = +f.dataset.b;
+    if (f !== src) f.value = fb === 10 ? String(n) : group(n.toString(fb).toUpperCase(), fb === 8 ? 3 : 4);
+  });
+  store.set("zs.n", n);
+  bits(n);
+}
+function bits(n) {
+  if (n == null) { $("#zBits").innerHTML = '<span class="muted">Zahl eingeben</span>'; $("#zPlace").innerHTML = ""; return; }
+  let s = n.toString(2);
+  const w = s.length <= 8 ? 8 : s.length <= 16 ? 16 : s.length <= 32 ? 32 : Math.ceil(s.length / 8) * 8;
+  s = s.padStart(w, "0");
+  let h = group(s, 4) + `<br><span class="muted">${w} Bit · ${s.replace(/0/g, "").length} Einsen`;
+  if (n < 4294967296 && w <= 32) { const signed = n >= 2 ** (w - 1) ? n - 2 ** w : n; h += ` · als ${w}-Bit vorzeichenbehaftet: ${signed}`; }
+  if (n >= 32 && n < 127) h += ` · ASCII: „${esc(String.fromCharCode(n))}“`;
+  $("#zBits").innerHTML = h + "</span>";
+  const b8 = (n % 256).toString(2).padStart(8, "0");
+  let t = "<tr>";
+  for (let i = 7; i >= 0; i--) t += `<th>${2 ** i}</th>`;
+  t += "</tr><tr>" + [...b8].map(c => `<td class="${c === "1" ? "on" : "off"}">${c}</td>`).join("") + "</tr>";
+  $("#zPlace").innerHTML = t + (n > 255 ? `<tr><td colspan="8" class="muted" style="font-size:12px;font-family:inherit">Unterste 8 Bit von ${n}</td></tr>` : "");
+}
+fields.forEach(f => f.oninput = () => update(f));
+
+/* ---------- Übungsmodus ---------- */
+const DIRS = [["10-2", "Dez → Bin"], ["2-10", "Bin → Dez"], ["10-16", "Dez → Hex"], ["16-10", "Hex → Dez"], ["2-16", "Bin → Hex"], ["16-2", "Hex → Bin"], ["mix", "Gemischt"]];
+const NAME = { 2: "binär", 10: "dezimal", 16: "hexadezimal" };
+const q = Object.assign({ dir: "10-2", r: 8, ok: 0, bad: 0, streak: 0, best: 0 }, store.get("zs.quiz", {}));
+let task = null;
+$("#qDir").innerHTML = DIRS.map(([d, l]) => `<button data-d="${d}">${l}</button>`).join("");
+const fb = $("#qFb"), ans = $("#qAns");
+function fmtIn(n, b) {
+  let s = n.toString(b).toUpperCase();
+  if (b === 2) { while (s.length < Math.min(q.r, 8) && s.length % 4) s = "0" + s; return group(s, 4); }
+  return s;
+}
+function newTask() {
+  const d = q.dir === "mix" ? DIRS[rnd(6)][0] : q.dir, [from, to] = d.split("-").map(Number), n = rnd(2 ** q.r);
+  task = { n, from, to, done: false };
+  $("#qQ").textContent = `Wandle ${NAME[from]} in ${NAME[to]} um:`;
+  $("#qTask").textContent = fmtIn(n, from) + (from === 16 ? "h" : from === 2 ? "b" : "");
+  ans.value = ""; fb.textContent = ""; fb.className = "";
+  ans.inputMode = to === 16 ? "text" : "numeric";
+  ans.focus({ preventScroll: true });
+}
+function stats() {
+  $("#qOk").textContent = q.ok; $("#qBad").textContent = q.bad; $("#qStreak").textContent = q.streak; $("#qBest").textContent = q.best;
+  $$("#qDir button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === q.dir));
+  $$("#qRange button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.r === q.r));
+  store.set("zs.quiz", q);
+}
+function check() {
+  if (!task || task.done) { newTask(); return; }
+  const v = clean(ans.value, task.to);
+  if (!v) return;
+  const right = RE[task.to].test(v) && parseInt(v, task.to) === task.n;
+  task.done = true;
+  if (right) { q.ok++; q.streak++; q.best = Math.max(q.best, q.streak); fb.textContent = "Richtig!"; fb.className = "ok"; }
+  else { q.bad++; q.streak = 0; fb.textContent = "Leider falsch. Lösung: " + fmtIn(task.n, task.to); fb.className = "err"; }
+  stats();
+}
+$("#qCheck").onclick = check;
+ans.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); check(); } };
+$("#qNext").onclick = newTask;
+$("#qSkip").onclick = () => { if (task && !task.done) { task.done = true; q.streak = 0; stats(); fb.textContent = "Lösung: " + fmtIn(task.n, task.to); fb.className = "muted"; } };
+$("#qDir").onclick = e => { const b = e.target.closest("button"); if (b) { q.dir = b.dataset.d; stats(); newTask(); } };
+$("#qRange").onclick = e => { const b = e.target.closest("button"); if (b) { q.r = +b.dataset.r; stats(); newTask(); } };
+$("#qReset").onclick = () => { q.ok = q.bad = q.streak = q.best = 0; stats(); };
+
+function setMode(m) {
+  store.set("zs.mode", m);
+  $("#zConv").hidden = m !== "conv"; $("#zQuiz").hidden = m !== "quiz";
+  $$("#zMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+  if (m === "quiz" && !task) newTask();
+}
+$("#zMode").onclick = e => { const b = e.target.closest("button"); if (b) setMode(b.dataset.m); };
+$("#zDec").value = store.get("zs.n", 42); update($("#zDec"));
+stats(); setMode(store.get("zs.mode", "conv") === "quiz" ? "quiz" : "conv");
+})();
+</script>
+</body>
+</html>

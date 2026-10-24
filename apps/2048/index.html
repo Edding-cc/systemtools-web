@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2048 · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button.down{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#b2{position:relative;width:min(100%,420px);aspect-ratio:1;margin:0 auto 12px;border-radius:12px;background:var(--surface-2);container-type:inline-size;touch-action:none;user-select:none;-webkit-user-select:none}
+#b2 .t{position:absolute;width:21.875%;height:21.875%;border-radius:8px;display:grid;place-items:center;font-weight:700;font-variant-numeric:tabular-nums}
+#b2 .e{background:var(--border)}
+#b2 .t.pop{animation:pop .16s ease-out}
+@keyframes pop{from{transform:scale(.6)}to{transform:scale(1)}}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">2048</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="stats"><div><b id="gScore">0</b><span>Punkte</span></div><div><b id="gBest">0</b><span>Rekord</span></div><div><b id="gMax">2</b><span>Größte Kachel</span></div></div>
+  <div id="b2" aria-label="Spielfeld"></div>
+  <p class="msg" id="gMsg" role="status"></p>
+  <div class="ctl" id="gPad"><button data-d="left" aria-label="Links">←</button><button data-d="up" aria-label="Hoch">↑</button><button data-d="down" aria-label="Runter">↓</button><button data-d="right" aria-label="Rechts">→</button></div>
+  <div class="ctl c2"><button id="gUndo" class="tonal">Rückgängig</button><button id="gNew" class="ac">Neues Spiel</button></div>
+  <p class="muted" style="font-size:14px">Wische über das Spielfeld oder nutze die Pfeile (auch Pfeiltasten oder WASD). Gleiche Zahlen verschmelzen. Ziel ist die Kachel 2048 – danach kannst du weiterspielen. Der Spielstand bleibt gespeichert.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   2048
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+const isTyping = e => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+/* Wischgeste per Pointer-Events: fn("left" | "right" | "up" | "down") */
+function onSwipe(el, fn, min = 24) {
+  let s = null;
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => { s = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
+  addEventListener("pointerup", e => {
+    if (!s || e.pointerId !== s.id) return;
+    const dx = e.clientX - s.x, dy = e.clientY - s.y, ax = Math.abs(dx), ay = Math.abs(dy); s = null;
+    if (Math.max(ax, ay) >= min) fn(ax > ay ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+  });
+  addEventListener("pointercancel", () => { s = null; });
+}
+/* Löst sofort beim Antippen aus (Tastatur: Klick) */
+function onPress(el, fn) {
+  el.addEventListener("pointerdown", e => { if (e.button > 0) return; e.preventDefault(); el.classList.add("down"); fn(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => el.addEventListener(ev, () => el.classList.remove("down")));
+  el.addEventListener("click", e => { if (e.detail === 0) fn(); });
+}
+const KEYS = { ArrowLeft: "left", ArrowUp: "up", ArrowRight: "right", ArrowDown: "down", a: "left", w: "up", d: "right", s: "down", A: "left", W: "up", D: "right", S: "down" };
+
+const N = 4, board = $("#b2");
+let st = store.get("g2048", null), prev = null, best = store.get("g2048.best", 0);
+const acHue = rgbToHsl(hexToRgb(settings.accent))[0];
+
+const fresh = () => ({ g: Array(N * N).fill(0), s: 0, won: false });
+const empty = g => g.reduce((e, v, i) => (v || e.push(i), e), []);
+function addTile(g) { const e = empty(g); if (!e.length) return -1; const i = e[rnd(e.length)]; g[i] = rnd(10) ? 2 : 4; return i; }
+function newGame() { st = fresh(); addTile(st.g); addTile(st.g); prev = null; save(); render([]); $("#gMsg").textContent = ""; }
+const save = () => store.set("g2048", st);
+
+/* Linie zusammenschieben; gibt [neue Linie, Punkte, Indizes der Verschmelzungen] */
+function slide(line) {
+  const v = line.filter(Boolean), out = [], merged = []; let pts = 0;
+  for (let i = 0; i < v.length; i++) {
+    if (i + 1 < v.length && v[i] === v[i + 1]) { out.push(v[i] * 2); pts += v[i] * 2; merged.push(out.length - 1); i++; }
+    else out.push(v[i]);
+  }
+  while (out.length < N) out.push(0);
+  return [out, pts, merged];
+}
+function idx(d, line, k) {
+  if (d === "left") return line * N + k;
+  if (d === "right") return line * N + (N - 1 - k);
+  if (d === "up") return k * N + line;
+  return (N - 1 - k) * N + line;
+}
+function move(d) {
+  if (!canMove(st.g)) return;
+  const g = st.g.slice(), pops = []; let moved = false, pts = 0;
+  for (let l = 0; l < N; l++) {
+    const line = []; for (let k = 0; k < N; k++) line.push(g[idx(d, l, k)]);
+    const r = slide(line);
+    for (let k = 0; k < N; k++) { const j = idx(d, l, k); if (g[j] !== r[0][k]) moved = true; g[j] = r[0][k]; }
+    r[2].forEach(k => pops.push(idx(d, l, k)));
+    pts += r[1];
+  }
+  if (!moved) return;
+  prev = { g: st.g.slice(), s: st.s, won: st.won };
+  st.g = g; st.s += pts;
+  pops.push(addTile(g));
+  if (st.s > best) { best = st.s; store.set("g2048.best", best); }
+  let msg = "";
+  if (!st.won && maxTile() >= 2048) { st.won = true; msg = "2048 erreicht! Du kannst weiterspielen."; }
+  if (!canMove(g)) msg = "Keine Züge mehr. Endstand: " + st.s;
+  $("#gMsg").textContent = msg;
+  save(); render(pops);
+}
+function canMove(g) {
+  if (empty(g).length) return true;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const v = g[y * N + x];
+    if ((x < N - 1 && g[y * N + x + 1] === v) || (y < N - 1 && g[(y + 1) * N + x] === v)) return true;
+  }
+  return false;
+}
+const maxTile = () => Math.max(...st.g);
+const isDark = () => document.documentElement.dataset.dark === "1";
+function color(v) {
+  const k = Math.round(Math.log2(v)), l = isDark() ? 30 + Math.min(k, 11) * 3 : 82 - Math.min(k, 11) * 4.5;
+  return hslToHex((acHue + (k - 1) * 28) % 360, 55, l);
+}
+const lum = hex => { const [r, g, b] = hexToRgb(hex); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
+function render(pops) {
+  const GAP = 2.5, S = 21.875;
+  board.innerHTML = st.g.map((v, i) => {
+    const pos = `left:${GAP + (i % N) * (S + GAP)}%;top:${GAP + Math.floor(i / N) * (S + GAP)}%;`;
+    if (!v) return `<div class="t e" style="${pos}"></div>`;
+    const bg = color(v), f = v < 100 ? 0.45 : v < 1000 ? 0.38 : v < 10000 ? 0.3 : 0.24;
+    return `<div class="t${pops.includes(i) ? " pop" : ""}" style="${pos}background:${bg};color:${lum(bg) > 0.35 ? "#1a1c1f" : "#fff"};font-size:${(S * f).toFixed(2)}cqw">${v}</div>`;
+  }).join("");
+  $("#gScore").textContent = st.s; $("#gBest").textContent = best; $("#gMax").textContent = maxTile();
+  $("#gUndo").disabled = !prev;
+}
+
+onSwipe(board, move);
+addEventListener("keydown", e => {
+  if (isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const d = KEYS[e.key]; if (d) { e.preventDefault(); move(d); }
+});
+$$("#gPad button").forEach(b => onPress(b, () => move(b.dataset.d)));
+$("#gUndo").onclick = () => { if (prev) { st = prev; prev = null; save(); render([]); $("#gMsg").textContent = ""; } };
+$("#gNew").onclick = () => { if (st.s === 0 || confirm("Neues Spiel starten?")) newGame(); };
+mql.addEventListener?.("change", () => render([]));
+if (!st || !Array.isArray(st.g) || st.g.length !== N * N) newGame();
+else { render([]); if (!canMove(st.g)) $("#gMsg").textContent = "Keine Züge mehr. Endstand: " + st.s; }
+})();
+</script>
+</body>
+</html>

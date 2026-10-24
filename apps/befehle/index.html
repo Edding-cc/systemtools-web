@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Befehle · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+.cmd{font-family:var(--mono);font-size:14px;font-weight:700;word-break:break-all}
+.cmdh{font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px;color:var(--muted);font-weight:600}
+.cmdcard{padding:4px 16px}
+.cmdcard .list-item{display:block;cursor:pointer;border-radius:8px;margin:0 -8px;padding:12px 8px}
+.cmdcard .list-item+.list-item{border-top:1px solid var(--border)}
+.cmdcard .list-item:hover{background:var(--surface-2)}
+.cmdcard .list-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.small{font-size:13px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Befehle</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="bOs" role="group" style="margin-bottom:12px"><button data-o="win">Windows</button><button data-o="lin">Linux</button></div>
+<input class="search" id="bq" type="search" placeholder="Befehl oder Aufgabe suchen …" aria-label="Suchen" autocomplete="off">
+<div id="bList"></div>
+<p class="muted small">Antippen kopiert den Befehl. Platzhalter in &lt;spitzen Klammern&gt; ersetzen. Manche Befehle brauchen Administrator- bzw. root-Rechte. Scans und Tests nur in eigenen oder freigegebenen Netzen.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Befehle
+   ========================================================= */
+/* Daten unverändert aus der WP-Version */
+const C = {
+    win: [
+      ["Netzwerk", [
+        ["ipconfig /all", "IP-Konfiguration aller Adapter inkl. MAC, DNS, DHCP"], ["ipconfig /release && ipconfig /renew", "DHCP-Adresse neu anfordern"],
+        ["ipconfig /flushdns", "DNS-Cache leeren"], ["ipconfig /displaydns", "DNS-Cache anzeigen"], ["ping -n 4 <host>", "Erreichbarkeit prüfen"],
+        ["tracert <host>", "Route zum Ziel verfolgen"], ["pathping <host>", "Route mit Paketverlust je Hop"], ["nslookup <name> <dns-server>", "DNS-Abfrage"],
+        ["netstat -ano", "Verbindungen und lauschende Ports mit Prozess-ID"], ["arp -a", "ARP-Tabelle anzeigen"], ["route print", "Routingtabelle anzeigen"],
+        ["getmac /v", "MAC-Adressen der Adapter"], ["netsh wlan show profiles", "Gespeicherte WLAN-Profile"], ["netsh wlan show interfaces", "Aktuelle WLAN-Verbindung, Signal, Kanal"],
+        ["netsh advfirewall show allprofiles", "Status der Windows-Firewall"]
+      ]],
+      ["PowerShell Netzwerk", [
+        ["Test-NetConnection <host> -Port 443", "Port erreichbar? (TCP-Test)"], ["Get-NetIPConfiguration", "IP-Konfiguration kompakt"],
+        ["Get-NetTCPConnection -State Listen", "Lauschende TCP-Ports"], ["Resolve-DnsName <name> -Type MX", "DNS-Abfrage mit Eintragstyp"],
+        ["Get-NetAdapter", "Netzwerkadapter und Status"]
+      ]],
+      ["System", [
+        ["systeminfo", "Betriebssystem, Updates, Hardware-Übersicht"], ["winver", "Windows-Version anzeigen"], ["hostname", "Rechnername"],
+        ["whoami /all", "Aktueller Benutzer mit Gruppen und Rechten"], ["tasklist", "Laufende Prozesse"], ["taskkill /PID <pid> /F", "Prozess beenden"],
+        ["sfc /scannow", "Systemdateien prüfen und reparieren"], ["DISM /Online /Cleanup-Image /RestoreHealth", "Windows-Abbild reparieren"],
+        ["chkdsk C: /f", "Dateisystem prüfen (beim Neustart)"], ["shutdown /r /t 0", "Sofort neu starten"], ["msinfo32", "Systeminformationen (GUI)"],
+        ["Get-ComputerInfo", "Systemdaten in PowerShell"], ["winget upgrade --all", "Installierte Programme über winget aktualisieren"]
+      ]],
+      ["Benutzer & Richtlinien", [
+        ["net user", "Lokale Benutzer auflisten"], ["net user <name>", "Details zu einem Benutzer"], ["net localgroup administrators", "Mitglieder der lokalen Administratoren"],
+        ["gpupdate /force", "Gruppenrichtlinien neu anwenden"], ["gpresult /r", "Angewendete Gruppenrichtlinien"], ["net accounts", "Kennwort- und Sperrrichtlinie lokal"]
+      ]],
+      ["Sicherheit & Prüfsummen", [
+        ["certutil -hashfile <datei> SHA256", "SHA-256-Prüfsumme einer Datei"], ["Get-FileHash <datei> -Algorithm SHA256", "Prüfsumme in PowerShell"],
+        ["manage-bde -status", "BitLocker-Status der Laufwerke"], ["Get-MpComputerStatus", "Status von Microsoft Defender"],
+        ["Get-WinEvent -LogName Security -MaxEvents 20", "Letzte Ereignisse im Sicherheitsprotokoll"], ["cipher /w:C:\\", "Freien Speicher überschreiben"]
+      ]]
+    ],
+    lin: [
+      ["Netzwerk", [
+        ["ip a", "IP-Adressen der Schnittstellen"], ["ip r", "Routingtabelle"], ["ip link", "Schnittstellen und Status"], ["ip neigh", "ARP-/Nachbartabelle"],
+        ["ss -tulpn", "Lauschende TCP/UDP-Ports mit Prozess"], ["ping -c 4 <host>", "Erreichbarkeit prüfen"], ["traceroute <host>", "Route verfolgen"],
+        ["dig <name> MX +short", "DNS-Abfrage mit Eintragstyp"], ["nslookup <name>", "DNS-Abfrage"], ["curl -I https://<host>", "Nur HTTP-Header abrufen"],
+        ["openssl s_client -connect <host>:443", "TLS-Verbindung und Zertifikat prüfen"], ["nmap -sV <host>", "Dienste und Versionen erkennen (nur autorisiert)"],
+        ["resolvectl status", "DNS-Konfiguration (systemd-resolved)"]
+      ]],
+      ["Dateien", [
+        ["ls -la", "Alle Dateien mit Rechten anzeigen"], ["cd -", "Zum vorherigen Verzeichnis"], ["find / -name '<muster>' 2>/dev/null", "Dateien suchen"],
+        ["grep -rn '<text>' <pfad>", "Text rekursiv mit Zeilennummer suchen"], ["tail -f /var/log/syslog", "Log live mitlesen"], ["less <datei>", "Datei seitenweise lesen"],
+        ["chmod 640 <datei>", "Rechte setzen (rw-r-----)"], ["chown <user>:<gruppe> <datei>", "Besitzer ändern"], ["tar -czf archiv.tar.gz <ordner>", "Ordner packen"],
+        ["tar -xzf archiv.tar.gz", "Archiv entpacken"], ["rsync -avz <quelle> <user>@<host>:<ziel>", "Dateien synchronisieren"], ["scp <datei> <user>@<host>:<ziel>", "Datei per SSH kopieren"],
+        ["sha256sum <datei>", "SHA-256-Prüfsumme"]
+      ]],
+      ["System", [
+        ["uname -a", "Kernel und System"], ["cat /etc/os-release", "Distribution und Version"], ["uptime", "Laufzeit und Last"], ["df -h", "Belegung der Dateisysteme"],
+        ["du -sh *", "Größe der Einträge im Ordner"], ["free -h", "Arbeitsspeicher"], ["lsblk", "Laufwerke und Partitionen"], ["top", "Prozesse live (htop, falls installiert)"],
+        ["ps aux | grep <name>", "Prozess suchen"], ["kill <pid>", "Prozess beenden (kill -9 erzwingt)"], ["systemctl status <dienst>", "Status eines Dienstes"],
+        ["sudo systemctl restart <dienst>", "Dienst neu starten"], ["sudo systemctl enable --now <dienst>", "Dienst aktivieren und starten"],
+        ["journalctl -u <dienst> -f", "Log eines Dienstes live"], ["journalctl -p err -b", "Fehler seit dem letzten Start"],
+        ["sudo apt update && sudo apt upgrade", "Pakete aktualisieren (Debian/Ubuntu)"], ["sudo dnf upgrade", "Pakete aktualisieren (Fedora/RHEL)"], ["crontab -e", "Zeitgesteuerte Aufgaben bearbeiten"]
+      ]],
+      ["Benutzer & Sicherheit", [
+        ["whoami && id", "Aktueller Benutzer und Gruppen"], ["sudo -l", "Erlaubte sudo-Befehle"], ["passwd", "Eigenes Passwort ändern"],
+        ["sudo useradd -m <name>", "Benutzer mit Home-Verzeichnis anlegen"], ["last -n 20", "Letzte Anmeldungen"], ["sudo ufw status verbose", "Firewall-Status (ufw)"],
+        ["sudo iptables -L -n -v", "Firewall-Regeln (iptables)"], ["sudo nft list ruleset", "Firewall-Regeln (nftables)"], ["ssh-keygen -t ed25519", "SSH-Schlüsselpaar erzeugen"],
+        ["ssh-copy-id <user>@<host>", "Öffentlichen Schlüssel auf Server kopieren"]
+      ]]
+    ]
+  };
+let os = store.get("cmd.os", "win");
+if (!C[os]) os = "win";
+function draw() {
+  const q = $("#bq").value.trim().toLowerCase();
+  let h = "", n = 0;
+  for (const [gname, items] of C[os]) {
+    const part = items.filter(([c, d]) => !q || (c + " " + d + " " + gname).toLowerCase().includes(q))
+      .map(([c, d]) => { n++; return `<div class="list-item" role="button" tabindex="0" data-c="${esc(c)}"><div class="cmd">${esc(c)}</div><small>${esc(d)}</small></div>`; }).join("");
+    if (part) h += `<div class="cmdh">${esc(gname)}</div><div class="card cmdcard">${part}</div>`;
+  }
+  $("#bList").innerHTML = n ? h : '<div class="card muted">Nichts gefunden.</div>';
+  $$("#bOs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.o === os));
+}
+$("#bOs").onclick = e => { const b = e.target.closest("button"); if (b) { os = b.dataset.o; store.set("cmd.os", os); draw(); } };
+$("#bq").oninput = draw;
+$("#bList").onclick = e => { const it = e.target.closest("[data-c]"); if (it) copy(it.dataset.c); };
+$("#bList").onkeydown = e => { const it = e.target.closest("[data-c]"); if (it && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); copy(it.dataset.c); } };
+draw();
+})();
+</script>
+</body>
+</html>

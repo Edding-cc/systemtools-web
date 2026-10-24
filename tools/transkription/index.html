@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Transkription · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.prog{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+:root[data-dark="1"] .prog i{background:color-mix(in srgb,var(--accent) 55%,#fff)}
+.tx-text{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border-radius:12px;padding:12px 14px;max-height:420px;overflow:auto;font-size:15px;user-select:text}
+#txDrop.over{border-color:var(--accent)}
+#txDev{display:flex;max-width:100%}
+#txDev button{flex:1;padding:8px 10px}
+#txDev button:disabled{opacity:.4;cursor:default}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Transkription</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Transkription (Whisper über Transformers.js, lokal)
+   ========================================================= */
+const TX_LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js";
+const TX_CACHE = "transformers-cache"; // Cache-Storage-Name, den Transformers.js für Modelle und WASM nutzt
+const TX_SR = 16000;
+// Dateigrößen in MB je Datentyp (Encoder, Decoder), Stand Hugging Face
+const TX_MODELS = [
+  { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, für Deutsch kaum brauchbar", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
+  { id: "onnx-community/whisper-base", name: "Base", note: "schnell, für Deutsch nur grob", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
+  { id: "onnx-community/whisper-small", name: "Small", note: "gut für Deutsch, ohne Grafikkarte aber langsam", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
+  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität für Deutsch; ohne Grafikkarte sehr langsam (etwa dreimal so lang wie die Aufnahme) und mit viel Arbeitsspeicher, auf Handys eher nicht", big: true, enc: { q8: 644.8, q4: 424.9, q4f16: 370 }, dec: { q8: 439.9, q4: 334.1, q4f16: 193.5 } }
+];
+// Voreinstellung je Rechenweg, gemessen an deutscher Sprache
+const TX_BEST = { webgpu: "onnx-community/whisper-large-v3-turbo", wasm: "onnx-community/whisper-small" };
+const TX_SUFFIX = { fp32: "", fp16: "_fp16", q8: "_quantized", q4: "_q4", q4f16: "_q4f16" };
+const TX_LANGS = [["de", "Deutsch"], ["en", "Englisch"], ["fr", "Französisch"], ["es", "Spanisch"], ["it", "Italienisch"], ["nl", "Niederländisch"], ["pl", "Polnisch"], ["pt", "Portugiesisch"], ["tr", "Türkisch"], ["ru", "Russisch"], ["uk", "Ukrainisch"], ["ar", "Arabisch"], ["zh", "Chinesisch"], ["ja", "Japanisch"]];
+// Läuft als Modul-Worker, damit die Seite während der Erkennung bedienbar bleibt
+const TX_WORKER = `
+import { pipeline, env } from "${TX_LIB}";
+env.allowLocalModels = false;
+const SR = ${TX_SR}, F = 1600;
+let asr = null, loaded = "";
+const energy = (a, s) => { let e = 0; for (let i = s; i < s + F; i++) e += a[i] * a[i]; return e / F; };
+// Leiseste Stelle (100-ms-Fenster) zwischen lo und hi, damit nicht mitten im Wort geschnitten wird
+function quietest(a, lo, hi) {
+  let best = hi, min = Infinity;
+  for (let s = lo; s + F <= hi; s += F / 2) { const e = energy(a, s); if (e < min) { min = e; best = s + F / 2; } }
+  return best;
+}
+function loudest(a, lo, hi) { let m = 0; for (let s = lo; s + F <= hi; s += F) m = Math.max(m, energy(a, s)); return m; }
+// Fehler aus Hintergrund-Promises der Laufzeit melden, statt still zu hängen
+self.addEventListener("unhandledrejection", e => postMessage({ type: "error", message: e.reason?.message || String(e.reason) }));
+self.onmessage = async ({ data: m }) => {
+  try {
+    if (m.type === "load") {
+      const key = m.model + "|" + m.device + "|" + JSON.stringify(m.dtype);
+      if (asr && loaded === key) return postMessage({ type: "ok" });
+      if (asr) { await asr.dispose?.(); asr = null; loaded = ""; }
+      const last = {};
+      asr = await pipeline("automatic-speech-recognition", m.model, {
+        device: m.device, dtype: m.dtype,
+        progress_callback: p => {
+          if (p.status !== "progress" || !p.total) return;
+          const now = Date.now();
+          if (p.loaded < p.total && now - (last[p.file] || 0) < 150) return;
+          last[p.file] = now;
+          postMessage({ type: "dl", file: p.file, loaded: p.loaded, total: p.total });
+        }
+      });
+      loaded = key;
+      postMessage({ type: "ok" });
+    } else if (m.type === "run") {
+      const a = m.audio, n = a.length;
+      // Stille überspringen, Whisper erfindet dort sonst gern Text
+      const thr = Math.min(0.005 ** 2, loudest(a, 0, n) * 0.03 ** 2);
+      let pos = 0;
+      while (pos < n) {
+        let end = Math.min(n, pos + 30 * SR);
+        if (end < n) end = quietest(a, pos + 20 * SR, end);
+        let chunks = [];
+        // Stille am Anfang abschneiden, sonst setzt Whisper den ersten Zeitstempel zu früh
+        while (pos + F <= end && energy(a, pos) < thr) pos += F;
+        if (end - pos >= F && loudest(a, pos, end) >= thr) {
+          const seg = a.subarray(pos, end), off = pos / SR, len = seg.length / SR;
+          const out = await asr(seg, { language: m.language, task: "transcribe", return_timestamps: true });
+          chunks = (out.chunks?.length ? out.chunks : [{ timestamp: [0, len], text: out.text }])
+            .map(c => ({ s: off + (c.timestamp[0] ?? 0), e: off + Math.min(c.timestamp[1] ?? len, len), t: c.text.trim() }))
+            .filter(c => c.t);
+        }
+        pos = end;
+        postMessage({ type: "part", chunks, done: pos / n });
+      }
+      postMessage({ type: "ok" });
+    }
+  } catch (e) { postMessage({ type: "error", message: e?.message || String(e) }); }
+};`;
+
+const tx = { worker: null, pending: null, busy: false, file: null, phase: "", sub: "", error: "", dl: {}, expect: 0, done: 0, t0: 0, gpu: undefined, lock: null, ...store.get("tx.last", { name: "", chunks: [], model: "" }) };
+tx.chunks = tx.chunks || [];
+addEventListener("beforeunload", e => { if (tx.busy) e.preventDefault(); });
+
+function txDtype(m, dev, f16) {
+  if (dev === "wasm") return { encoder_model: "q8", decoder_model_merged: "q8" };
+  if (m.big) return f16 ? { encoder_model: "q4f16", decoder_model_merged: "q4f16" } : { encoder_model: "q4", decoder_model_merged: "q4" };
+  return { encoder_model: f16 ? "fp16" : "fp32", decoder_model_merged: "q4" };
+}
+const txSize = (m, dt) => (m.enc[dt.encoder_model] || 0) + (m.dec[dt.decoder_model_merged] || 0);
+const txFiles = (m, dt) => [`onnx/encoder_model${TX_SUFFIX[dt.encoder_model]}.onnx`, `onnx/decoder_model_merged${TX_SUFFIX[dt.decoder_model_merged]}.onnx`].map(f => `https://huggingface.co/${m.id}/resolve/main/${f}`);
+async function txGpu() {
+  if (tx.gpu !== undefined) return tx.gpu;
+  try { const a = await navigator.gpu?.requestAdapter(); tx.gpu = a ? { f16: a.features.has("shader-f16") } : null; } catch { tx.gpu = null; }
+  return tx.gpu;
+}
+async function txCacheList() {
+  if (!("caches" in self)) return null;
+  const c = await caches.open(TX_CACHE), groups = {};
+  for (const req of await c.keys()) {
+    const hf = /huggingface\.co\/([^/]+\/[^/]+)\/resolve\//.exec(req.url);
+    const g = hf ? hf[1] : /onnxruntime/.test(req.url) ? "runtime" : "other";
+    const res = await c.match(req);
+    const size = +(res?.headers.get("content-length") || 0);
+    (groups[g] ||= { size: 0, reqs: [] }).size += size;
+    groups[g].reqs.push(req);
+  }
+  return groups;
+}
+const txClock = (s, ms) => {
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = Math.floor(s) % 60, p = n => String(n).padStart(2, "0");
+  return ms ? `${p(h)}:${p(m)}:${p(sec)}${ms}${String(Math.round((s % 1) * 1000) % 1000).padStart(3, "0")}` : (h ? h + ":" : "") + p(m) + ":" + p(sec);
+};
+function txText(ts) {
+  if (ts) return tx.chunks.map(c => `[${txClock(c.s)}] ${c.t}`).join("\n");
+  // Absatz bei längerer Sprechpause
+  return tx.chunks.map((c, i) => (i && c.s - tx.chunks[i - 1].e >= 3 ? "\n\n" : i ? " " : "") + c.t).join("");
+}
+function txSubs(vtt) {
+  const sep = vtt ? "." : ",";
+  const cues = tx.chunks.map((c, i) => `${vtt ? "" : i + 1 + "\n"}${txClock(c.s, sep)} --> ${txClock(Math.max(c.e, c.s + .5), sep)}\n${c.t}`);
+  return (vtt ? "WEBVTT\n\n" : "") + cues.join("\n\n") + "\n";
+}
+function saveFile(name, text, type) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: type + ";charset=utf-8" }));
+  a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function txDecode(file) {
+  const ctx = new OfflineAudioContext(1, 1, TX_SR); // decodeAudioData rechnet direkt auf 16 kHz um
+  const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+  const out = new Float32Array(buf.length);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < d.length; i++) out[i] += d[i] / buf.numberOfChannels; }
+  return out;
+}
+function txWorker() {
+  if (tx.worker) return tx.worker;
+  const url = URL.createObjectURL(new Blob([TX_WORKER], { type: "text/javascript" }));
+  tx.worker = new Worker(url, { type: "module" });
+  tx.worker.onmessage = ({ data: m }) => {
+    if (m.type === "dl") { tx.dl[m.file] = [m.loaded, m.total]; tx.ui?.status(); }
+    else if (m.type === "part") {
+      tx.chunks.push(...m.chunks); tx.done = m.done;
+      store.set("tx.last", { name: tx.name, chunks: tx.chunks, model: tx.model });
+      tx.ui?.status(); tx.ui?.result();
+    }
+    else if (m.type === "ok") { const p = tx.pending; tx.pending = null; p?.res(); }
+    else if (m.type === "error") { const p = tx.pending; tx.pending = null; p?.rej(new Error(m.message)); }
+  };
+  tx.worker.onerror = e => { e.preventDefault?.(); const p = tx.pending; tx.pending = null; txKill(); p?.rej(new Error(e.message ? "Fehler bei der Erkennung: " + e.message : "Die Erkennungs-Bibliothek konnte nicht geladen werden. Beim ersten Mal ist eine Internetverbindung nötig.")); };
+  return tx.worker;
+}
+const txCall = (msg, transfer = []) => new Promise((res, rej) => { tx.pending = { res, rej }; txWorker().postMessage(msg, transfer); });
+// Download fertig, Laufzeit baut die Sitzung auf (gilt auch beim Laden aus dem Gerätespeicher)
+function txPreparing() {
+  const f = Object.entries(tx.dl);
+  return tx.busy && !tx.t0 && f.filter(([k]) => /\.onnx/.test(k)).length >= 2 && f.every(([, [l, t]]) => l >= t);
+}
+function txKill() { tx.worker?.terminate(); tx.worker = null; }
+
+async function txStart(o) {
+  const m = TX_MODELS.find(x => x.id === o.model);
+  Object.assign(tx, { busy: true, stop: false, error: "", sub: "", chunks: [], done: 0, t0: 0, dl: {}, name: tx.file.name, model: m.name });
+  tx.ui?.result();
+  try { tx.lock = await navigator.wakeLock?.request("screen"); } catch {}
+  // Wartezeit beim Vorbereiten sichtbar halten; hängt die Grafikkarte, auf den Prozessor ausweichen
+  const tick = setInterval(() => {
+    if (txPreparing()) {
+      tx.prep ||= performance.now();
+      if (tx.dev === "webgpu" && !m.big && tx.pending && performance.now() - tx.prep > 60000) {
+        const p = tx.pending; tx.pending = null; txKill(); p.rej(new Error("Die Grafikkarte reagiert nicht."));
+      }
+    }
+    tx.ui?.status();
+  }, 1000);
+  try {
+    tx.phase = "Audio wird gelesen …"; tx.ui?.status();
+    let audio;
+    try { audio = await txDecode(tx.file); } catch { throw new Error("Die Datei konnte nicht gelesen werden. Dein Browser kennt dieses Format eventuell nicht, versuch MP3, M4A oder WAV."); }
+    const secs = audio.length / TX_SR;
+    if (secs < .5) throw new Error("Die Aufnahme ist zu kurz oder enthält keinen Ton.");
+    const gpu = await txGpu();
+    if (tx.stop) throw new Error("Abgebrochen.");
+    let dev = o.dev === "auto" ? (gpu ? "webgpu" : "wasm") : o.dev;
+    if (dev === "webgpu" && !gpu) dev = "wasm";
+    const load = async d => {
+      const dt = txDtype(m, d, gpu?.f16);
+      const keys = "caches" in self ? (await (await caches.open(TX_CACHE)).keys()).map(r => r.url) : [];
+      const cached = txFiles(m, dt).every(u => keys.includes(u));
+      tx.phase = cached ? "Modell wird aus dem Gerätespeicher geladen …" : "Modell wird heruntergeladen …";
+      tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.dev = d; tx.prep = 0; tx.ui?.status();
+      if (!cached) navigator.storage?.persist?.().catch(() => {}); // Browser bitten, den Cache nicht automatisch zu räumen
+      await txCall({ type: "load", model: m.id, device: d, dtype: dt });
+    };
+    try { await load(dev); }
+    catch (e) {
+      // Kein stiller Wechsel bei Turbo, auf dem Prozessor wären das andere Dateien mit über 1 GB
+      if (dev !== "webgpu" || /konnte nicht geladen/.test(e.message)) throw e;
+      if (m.big) throw new Error(`${e.message} – Die Grafikkarte kann ${m.name} nicht ausführen. Wähle beim Rechenweg „Prozessor“ (über 1 GB Download, langsam) oder ein kleineres Modell.`);
+      txKill(); dev = "wasm"; tx.sub = (/reagiert nicht/.test(e.message) ? "Grafikkarte reagiert nicht" : "Grafikkarte nicht nutzbar") + ", es wird der Prozessor verwendet.";
+      await load(dev);
+    }
+    if (tx.stop) throw new Error("Abgebrochen.");
+    tx.phase = `Transkribiere ${txClock(secs)} (${m.name}, ${dev === "webgpu" ? "Grafikkarte" : "Prozessor"}) …`;
+    tx.t0 = performance.now(); tx.dl = {}; tx.ui?.status();
+    await txCall({ type: "run", audio, language: o.lang }, [audio.buffer]);
+    tx.phase = `Fertig nach ${txClock((performance.now() - tx.t0) / 1000)}`;
+    if (!tx.chunks.length) tx.error = "Keine Sprache erkannt.";
+  } catch (e) {
+    tx.phase = ""; tx.error = e.message;
+  } finally {
+    clearInterval(tick);
+    tx.busy = false; tx.ui?.status(); tx.ui?.result(); tx.ui?.cache();
+    tx.lock?.release?.().catch(() => {}); tx.lock = null;
+  }
+}
+function txCancel() {
+  tx.stop = true;
+  const p = tx.pending; tx.pending = null; txKill();
+  p?.rej(new Error(tx.chunks.length ? "Abgebrochen, das bisherige Ergebnis bleibt erhalten." : "Abgebrochen."));
+}
+
+function viewTranskription(app) {
+  const o = Object.assign({ model: "", lang: "de", dev: "auto" }, store.get("tx.opts", {}));
+  app.innerHTML = `
+    <div class="hint">Wandelt Sprache aus einer Audio- oder Videodatei in Text um. Die Erkennung (Whisper) läuft komplett auf deinem Gerät, die Datei verlässt es nicht. Nur das Sprachmodell wird beim ersten Mal von Hugging Face geladen und danach im Browser gespeichert, beim nächsten Aufruf geht es ohne erneuten Download.</div>
+    <div class="card" id="txDrop">
+      <h3>Aufnahme</h3>
+      <div class="row">
+        <label class="btn tonal" for="txFile" id="txPick" tabindex="0" role="button" style="display:inline-flex;align-items:center">Datei wählen</label>
+        <input type="file" id="txFile" accept="audio/*,video/*" hidden>
+        <button class="btn tonal" id="txRec" ${navigator.mediaDevices?.getUserMedia && window.MediaRecorder ? "" : "disabled"}>Mikrofon aufnehmen</button>
+      </div>
+      <p class="muted" id="txFileInfo" style="font-size:14px;margin:8px 0 0"></p>
+    </div>
+    <div class="card">
+      <h3>Einstellungen</h3>
+      <label class="fld" for="txModel">Modell</label><select id="txModel"></select>
+      <p class="muted" id="txModelInfo" style="font-size:13px;margin:6px 0 0"></p>
+      <label class="fld" for="txLang">Sprache der Aufnahme</label>
+      <select id="txLang">${TX_LANGS.map(([v, l]) => `<option value="${v}" ${o.lang === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <label class="fld">Rechenweg</label>
+      <div class="seg" role="group" id="txDev">${[["auto", "Automatisch"], ["webgpu", "Grafikkarte"], ["wasm", "Prozessor"]].map(([v, l]) => `<button data-v="${v}" aria-pressed="${o.dev === v}">${l}</button>`).join("")}</div>
+      <p class="muted" id="txDevInfo" style="font-size:13px;margin:6px 0 0"></p>
+      <div class="row" style="margin-top:14px"><button class="btn" id="txGo">Transkribieren</button></div>
+    </div>
+    <div class="card" id="txStatus" hidden>
+      <div class="row" style="justify-content:space-between"><b id="txPhase" style="flex:1"></b><span class="muted mono" id="txPct"></span></div>
+      <div class="prog" id="txProg"><i id="txBar"></i></div>
+      <p class="muted" id="txSub" style="font-size:13px;margin:6px 0 0"></p>
+      <p class="err" id="txErr" style="font-size:14px;margin:6px 0 0"></p>
+    </div>
+    <div class="card" id="txOut" hidden>
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">Ergebnis</h3>
+        <label class="switch" style="padding:0"><span class="muted" style="font-size:14px">Zeitstempel</span><input type="checkbox" id="txTs"></label></div>
+      <p class="muted" id="txOutInfo" style="font-size:13px;margin:2px 0 8px"></p>
+      <div class="tx-text" id="txText"></div>
+      <div class="row" style="margin-top:12px" id="txExp">
+        <button class="btn tonal" data-f="copy">Kopieren</button><button class="btn tonal" data-f="txt">.txt</button><button class="btn tonal" data-f="srt">.srt</button><button class="btn tonal" data-f="vtt">.vtt</button>
+        <button class="btn text" data-f="clear">Leeren</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Gespeicherte Modelle</h3>
+      <div id="txCache" class="muted" style="font-size:14px">…</div>
+    </div>
+    <p class="muted" style="font-size:13px">Während der Erkennung kannst du andere Werkzeuge öffnen, sie läuft weiter. Lass den Tab aber im Vordergrund, sonst bremst der Browser sie stark aus. Sehr lange Aufnahmen (mehrere Stunden) können auf Handys am Arbeitsspeicher scheitern.</p>`;
+
+  let keys = [];
+  const gpuReady = txGpu();
+  const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
+  const saveOpts = () => store.set("tx.opts", o);
+  // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
+  const cur = () => { const m = TX_MODELS.find(x => x.id === o.model); return m ? m.id : TX_BEST[effDev()]; };
+  const modelInfo = () => { const m = TX_MODELS.find(x => x.id === cur()); $("#txModelInfo").textContent = m ? m.name + ": " + m.note + "." : ""; };
+  const drawModels = () => {
+    const dev = effDev();
+    $("#txModel").innerHTML = TX_MODELS.map(m => {
+      const dt = txDtype(m, dev, tx.gpu?.f16);
+      const have = txFiles(m, dt).every(u => keys.includes(u));
+      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
+    }).join("");
+    modelInfo();
+    $("#txDevInfo").textContent = tx.gpu === undefined ? "Grafikkarte wird geprüft …"
+      : (tx.gpu ? "Grafikkarte (WebGPU) verfügbar" + (tx.gpu.f16 ? ", mit 16-Bit-Unterstützung." : ".") : "Keine Grafikkarte (WebGPU) verfügbar, es rechnet der Prozessor.")
+        + (dev === "wasm" ? " Auf dem Prozessor dauert es deutlich länger als die Aufnahme selbst." : "");
+    $$("#txDev button").forEach(b => { b.setAttribute("aria-pressed", b.dataset.v === o.dev); if (b.dataset.v === "webgpu") b.disabled = tx.gpu === null; });
+  };
+  const fileInfo = () => {
+    const el = $("#txFileInfo"); if (!el) return;
+    if (!tx.file) { el.textContent = "Oder Datei hierher ziehen. MP3, M4A, WAV, OGG, WebM, MP4 und andere Formate, die dein Browser abspielen kann."; return; }
+    el.innerHTML = `<b style="color:var(--text)">${esc(tx.file.name)}</b> · ${fmtBytes(tx.file.size)}<span id="txDur"></span>`;
+    const a = new Audio(); a.preload = "metadata"; a.src = URL.createObjectURL(tx.file);
+    a.onloadedmetadata = () => { if (isFinite(a.duration) && $("#txDur")) $("#txDur").textContent = " · " + txClock(a.duration); URL.revokeObjectURL(a.src); };
+    a.onerror = () => URL.revokeObjectURL(a.src);
+  };
+  const setFile = f => { if (!f) return; tx.file = f; fileInfo(); status(); };
+  const status = () => {
+    if (!$("#txStatus")) return;
+    const show = tx.busy || tx.error || tx.phase;
+    $("#txStatus").hidden = !show;
+    $("#txGo").textContent = tx.busy ? "Abbrechen" : "Transkribieren";
+    $("#txGo").classList.toggle("tonal", tx.busy);
+    $("#txGo").disabled = !tx.busy && !tx.file;
+    $("#txRec").disabled = tx.busy || !(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+    $("#txPhase").textContent = tx.phase;
+    $("#txErr").textContent = tx.error;
+    let pct = null, sub = tx.sub;
+    const files = Object.values(tx.dl);
+    if (tx.busy && files.length) {
+      const got = files.reduce((s, [l]) => s + l, 0), tot = Math.max(tx.expect, files.reduce((s, [, t]) => s + t, 0));
+      pct = got / tot;
+      if (txPreparing()) {
+        tx.prep ||= performance.now();
+        const w = (performance.now() - tx.prep) / 1000;
+        $("#txPhase").textContent = `Modell wird vorbereitet (${tx.dev === "webgpu" ? "Grafikkarte" : "Prozessor"}) … ${txClock(w)}`;
+        if (w > 60) sub = (tx.dev === "webgpu" ? "Dauert ungewöhnlich lange. Hängt es, abbrechen und ein kleineres Modell oder beim Rechenweg „Prozessor“ wählen." : "Dauert ungewöhnlich lange. Auf schwachen Geräten oder bei großen Modellen kann das mehrere Minuten brauchen.") + (sub ? " · " + sub : "");
+        else if (w > 10 && tx.dev === "webgpu" && !TX_MODELS.find(x => x.name === tx.model)?.big) sub = `Hängt die Grafikkarte, wird nach 1 Minute automatisch der Prozessor genommen.` + (sub ? " · " + sub : "");
+        pct = 1;
+      }
+      else sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
+    } else if (tx.busy && tx.t0 && tx.done) {
+      pct = tx.done;
+      const el = (performance.now() - tx.t0) / 1000;
+      sub = `noch ca. ${txClock(el * (1 - tx.done) / tx.done)}` + (sub ? " · " + sub : "");
+    } else if (tx.busy && tx.t0) { pct = 0; sub = "Erster Abschnitt läuft, danach gibt es eine Restzeit." + (sub ? " · " + sub : ""); }
+    $("#txSub").textContent = sub;
+    $("#txProg").hidden = pct == null;
+    $("#txBar").style.width = ((pct || 0) * 100).toFixed(1) + "%";
+    $("#txPct").textContent = pct == null ? "" : Math.floor(pct * 100) + " %";
+  };
+  const result = () => {
+    if (!$("#txOut")) return;
+    $("#txOut").hidden = !tx.chunks.length;
+    if (!tx.chunks.length) return;
+    const box = $("#txText"), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 8;
+    box.textContent = txText($("#txTs").checked);
+    if (tx.busy && atEnd) box.scrollTop = box.scrollHeight;
+    const words = tx.chunks.reduce((n, c) => n + c.t.split(/\s+/).length, 0);
+    $("#txOutInfo").textContent = [tx.name, tx.model, words.toLocaleString("de-DE") + " Wörter"].filter(Boolean).join(" · ");
+    $$("#txExp button").forEach(b => b.disabled = tx.busy && b.dataset.f === "clear");
+  };
+  const cache = async () => {
+    const el = $("#txCache"); if (!el) return;
+    let groups;
+    try { groups = await txCacheList(); } catch { groups = null; }
+    if (!$("#txCache")) return;
+    if (!groups) { el.textContent = "Dein Browser stellt keinen Speicher für Modelle bereit. Sie werden dann bei jedem Aufruf neu geladen."; return; }
+    keys = Object.values(groups).flatMap(g => g.reqs.map(r => r.url));
+    drawModels();
+    const est = await navigator.storage?.estimate?.().catch(() => null);
+    const persisted = await navigator.storage?.persisted?.().catch(() => null);
+    const ids = Object.keys(groups).filter(g => g !== "runtime" && g !== "other");
+    const rows = ids.map(g => {
+      const m = TX_MODELS.find(x => x.id === g);
+      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${fmtBytes(groups[g].size)}</small></div>
+        <button class="iconbtn" data-del="${esc(g)}" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`;
+    });
+    const other = ["runtime", "other"].filter(g => groups[g]).reduce((s, g) => s + groups[g].size, 0);
+    if (other) rows.push(`<div class="list-item"><div class="grow"><b style="color:var(--text)">Laufzeit (ONNX Runtime)</b><small>${fmtBytes(other)}</small></div>
+      <button class="iconbtn" data-del="runtime" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`);
+    el.innerHTML = (rows.length ? rows.join("") : "<p style='margin:0'>Noch kein Modell gespeichert.</p>")
+      + `<p style="margin:10px 0 0;font-size:13px">${est ? `Belegt ${fmtBytes(est.usage)} von ${fmtBytes(est.quota)} Kontingent. ` : ""}${persisted == null ? "" : persisted ? "Der Browser hält die Daten dauerhaft vor." : "Der Browser darf die Daten bei Speichermangel räumen. Als App installieren oder als Lesezeichen speichern hilft meist, dass sie bleiben."}</p>`;
+  };
+  tx.ui = { status, result, cache };
+  onLeave(() => { tx.ui = null; });
+
+  $("#txFile").onchange = e => setFile(e.target.files[0]);
+  $("#txPick").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#txFile").click(); } };
+  const drop = $("#txDrop");
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); if (!tx.busy) setFile(e.dataTransfer.files[0]); };
+
+  let rec = null;
+  const stopRec = (keep = true) => { if (!rec) return; rec.keep = keep; rec.stop(); };
+  onLeave(() => stopRec(false));
+  $("#txRec").onclick = async () => {
+    if (rec) { stopRec(); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { toast(e.name === "NotAllowedError" ? "Mikrofonzugriff verweigert" : "Kein Mikrofon verfügbar"); return; }
+    const parts = [], t0 = Date.now();
+    rec = new MediaRecorder(stream); rec.keep = true;
+    rec.ondataavailable = e => e.data.size && parts.push(e.data);
+    const tick = setInterval(() => { const b = $("#txRec"); if (b) b.textContent = "Aufnahme beenden · " + txClock((Date.now() - t0) / 1000); }, 500);
+    rec.onstop = () => {
+      clearInterval(tick); stream.getTracks().forEach(t => t.stop());
+      const type = rec.mimeType || "audio/webm", keep = rec.keep; rec = null;
+      const b = $("#txRec"); if (b) b.textContent = "Mikrofon aufnehmen";
+      if (keep && parts.length) setFile(new File(parts, `Aufnahme ${new Date().toLocaleString("de-DE").replace(/[/:]/g, "-")}.${/mp4/.test(type) ? "m4a" : /ogg/.test(type) ? "ogg" : "webm"}`, { type }));
+    };
+    rec.start(1000);
+    $("#txRec").textContent = "Aufnahme beenden · 00:00";
+  };
+
+  $("#txModel").onchange = e => { o.model = e.target.value; saveOpts(); modelInfo(); };
+  $("#txLang").onchange = e => { o.lang = e.target.value; saveOpts(); };
+  $("#txDev").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; o.dev = b.dataset.v; saveOpts(); drawModels(); };
+  $("#txGo").onclick = () => {
+    if (tx.busy) { txCancel(); return; }
+    if (!tx.file) return;
+    if (tx.chunks.length && !confirm("Das bisherige Ergebnis wird ersetzt. Fortfahren?")) return;
+    stopRec(false);
+    txStart({ ...o, model: cur() });
+  };
+  $("#txTs").onchange = result;
+  $("#txExp").onclick = e => {
+    const f = e.target.closest("button")?.dataset.f; if (!f) return;
+    const base = (tx.name || "Transkript").replace(/\.[^.]+$/, "");
+    if (f === "copy") copy(txText($("#txTs").checked));
+    else if (f === "txt") saveFile(base + ".txt", txText($("#txTs").checked), "text/plain");
+    else if (f === "srt") saveFile(base + ".srt", txSubs(false), "application/x-subrip");
+    else if (f === "vtt") saveFile(base + ".vtt", txSubs(true), "text/vtt");
+    else if (f === "clear" && confirm("Ergebnis löschen?")) { tx.chunks = []; tx.phase = ""; tx.error = ""; store.set("tx.last", { name: "", chunks: [], model: "" }); result(); status(); }
+  };
+  $("#txCache").onclick = async e => {
+    const g = e.target.closest("[data-del]")?.dataset.del; if (!g || tx.busy) return;
+    const m = TX_MODELS.find(x => x.id === g);
+    if (!confirm(`${m ? "Whisper " + m.name : "Laufzeit"} vom Gerät löschen? Beim nächsten Mal wird es neu heruntergeladen.`)) return;
+    txKill(); // geladenes Modell aus dem Arbeitsspeicher werfen
+    const groups = await txCacheList(), c = await caches.open(TX_CACHE);
+    const del = g === "runtime" ? [...(groups.runtime?.reqs || []), ...(groups.other?.reqs || [])] : groups[g]?.reqs || [];
+    await Promise.all(del.map(r => c.delete(r)));
+    toast("Gelöscht"); cache();
+  };
+
+  drawModels(); fileInfo(); status(); result(); cache();
+  gpuReady.then(drawModels);
+}
+
+viewTranskription($("#app"));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lernkarten Netzwerk · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+#lc{min-height:220px;border-radius:18px;padding:20px 16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;justify-content:center;background:var(--surface);border:1px solid var(--border);touch-action:pan-y;user-select:none;-webkit-user-select:none;transition:transform .18s,border-color .18s}
+#lc.drag{transition:none}
+#lc.know{border-color:var(--ok)}
+#lc.again{border-color:var(--warn)}
+#lc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#lc .q{font-size:20px;font-weight:600}
+#lc .a{font-size:18px;margin-top:14px;padding-top:14px;white-space:pre-line;border-top:1px dashed var(--border)}
+#lc .tag{font-size:12px;margin-bottom:10px;color:var(--muted)}
+.prog{height:6px;border-radius:3px;overflow:hidden;margin:8px 0 12px;background:var(--surface-2)}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.between{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Lernkarten Netzwerk</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<label class="fld" for="lDeck">Stapel</label><select id="lDeck"></select>
+<div class="chips mt" id="lOpt"><button id="lRev">Antwort zuerst</button><button id="lWeak">Nur unsichere</button></div>
+<div class="prog" role="progressbar" aria-label="Gewusst" aria-valuemin="0" aria-valuemax="100" id="lProg"><i id="lBar"></i></div>
+<div id="lc" tabindex="0" role="button" aria-live="polite"></div>
+<div class="ctl c2 mt" id="lBtns"><button id="lAgain" class="tonal">Nochmal</button><button id="lKnow" class="ac">Gewusst</button></div>
+<div class="between"><span class="muted" id="lInfo" style="font-size:14px"></span><button class="btn text" id="lReset">Fortschritt löschen</button></div>
+<p class="muted" style="font-size:13px;margin-top:4px">Karte antippen zum Aufdecken. Aufgedeckt nach rechts wischen = gewusst, nach links = nochmal. Tastatur: Leertaste, ← und →.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Lernkarten Netzwerk
+   ========================================================= */
+const rnd = n => { const lim = 4294967296 - (4294967296 % n), a = new Uint32Array(1); let x; do { crypto.getRandomValues(a); x = a[0]; } while (x >= lim); return x % n; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+/* Daten unverändert aus der WP-Version */
+const DECKS = [
+    { n: "OSI-Modell", c: [
+      ["OSI-Schicht 1?", "Bitübertragungsschicht\n(Physical Layer)"], ["OSI-Schicht 2?", "Sicherungsschicht\n(Data Link Layer)"], ["OSI-Schicht 3?", "Vermittlungsschicht\n(Network Layer)"],
+      ["OSI-Schicht 4?", "Transportschicht\n(Transport Layer)"], ["OSI-Schicht 5?", "Sitzungsschicht\n(Session Layer)"], ["OSI-Schicht 6?", "Darstellungsschicht\n(Presentation Layer)"],
+      ["OSI-Schicht 7?", "Anwendungsschicht\n(Application Layer)"], ["Merksatz für die Schichten 7 bis 1?", "„Alle deutschen Schüler trinken verschiedene Sorten Bier“\nAnwendung, Darstellung, Sitzung, Transport, Vermittlung, Sicherung, Bitübertragung"],
+      ["Dateneinheit (PDU) der Schicht 1?", "Bits"], ["Dateneinheit (PDU) der Schicht 2?", "Rahmen (Frame)"], ["Dateneinheit (PDU) der Schicht 3?", "Paket"],
+      ["Dateneinheit (PDU) der Schicht 4?", "Segment (TCP) bzw. Datagramm (UDP)"], ["Auf welcher Schicht arbeitet ein klassischer Switch?", "Schicht 2 – leitet anhand von MAC-Adressen weiter"],
+      ["Auf welcher Schicht arbeitet ein Router?", "Schicht 3 – leitet anhand von IP-Adressen weiter"], ["Auf welcher Schicht arbeiten Hub und Repeater?", "Schicht 1"],
+      ["Welche Schicht: logische Adressierung und Routing?", "Schicht 3, Vermittlung"], ["Welche Schicht: Ende-zu-Ende-Transport, Ports, Flusskontrolle?", "Schicht 4, Transport"],
+      ["Welche Schicht: MAC-Adressen, Medienzugriff, Prüfsumme (FCS)?", "Schicht 2, Sicherung"], ["Welche Schicht: Auf- und Abbau von Sitzungen, Dialogsteuerung?", "Schicht 5, Sitzung"],
+      ["Welche Schicht: Datenformate, Kodierung, Kompression?", "Schicht 6, Darstellung"], ["Welcher Schicht werden IP und ICMP zugeordnet?", "Schicht 3"],
+      ["Welcher Schicht werden TCP und UDP zugeordnet?", "Schicht 4"], ["Welcher Schicht werden HTTP, DNS und SMTP zugeordnet?", "Schicht 7"],
+      ["Schichten des TCP/IP-Modells?", "4 Schichten:\nNetzzugang, Internet, Transport, Anwendung"]
+    ] },
+    { n: "Protokolle & Abläufe", c: [
+      ["TCP oder UDP: verbindungsorientiert mit Bestätigungen?", "TCP"], ["TCP oder UDP: verbindungslos, ohne Zustellgarantie?", "UDP"],
+      ["Ablauf des TCP-Verbindungsaufbaus?", "Drei-Wege-Handschlag:\nSYN → SYN-ACK → ACK"], ["Womit wird eine TCP-Verbindung regulär beendet?", "FIN und ACK (jede Seite schließt ihre Richtung)"],
+      ["Wofür ist ARP zuständig?", "Ermittelt zur IPv4-Adresse die MAC-Adresse im lokalen Netz"], ["Was ersetzt ARP bei IPv6?", "NDP – Neighbor Discovery Protocol (über ICMPv6)"],
+      ["Die vier DHCP-Schritte (DORA)?", "Discover, Offer, Request, Acknowledge"], ["Wofür ist ICMP da?", "Fehler- und Diagnosemeldungen, z. B. ping (Echo Request/Reply)"],
+      ["Was bedeutet TTL im IP-Header?", "Maximale Anzahl Hops – bei 0 wird das Paket verworfen; traceroute nutzt das"],
+      ["DNS-Eintrag für eine IPv4-Adresse?", "A"], ["DNS-Eintrag für eine IPv6-Adresse?", "AAAA"], ["DNS-Eintrag für den Mailserver einer Domain?", "MX"],
+      ["DNS-Eintrag für einen Alias?", "CNAME"], ["DNS-Eintrag für die Rückwärtsauflösung?", "PTR"], ["DNS-Eintrag u. a. für SPF und Verifizierungen?", "TXT"],
+      ["Was macht NAT?", "Übersetzt Adressen, z. B. private interne in eine öffentliche Adresse"], ["Übliche MTU bei Ethernet?", "1500 Byte"],
+      ["IEEE-Standard für VLANs?", "IEEE 802.1Q"], ["IEEE-Standard für WLAN?", "IEEE 802.11"], ["IEEE-Standard für Ethernet?", "IEEE 802.3"],
+      ["Was regelt IEEE 802.1X?", "Portbasierte Zugangskontrolle (Authentifizierung, z. B. mit RADIUS)"],
+      ["HTTP-Status 200?", "OK"], ["HTTP-Status 301?", "Dauerhaft verschoben (Moved Permanently)"], ["HTTP-Status 401?", "Nicht authentifiziert (Unauthorized)"],
+      ["HTTP-Status 403?", "Verboten (Forbidden)"], ["HTTP-Status 404?", "Nicht gefunden (Not Found)"], ["HTTP-Status 500?", "Interner Serverfehler"],
+      ["HTTP-Status 503?", "Dienst nicht verfügbar"]
+    ] },
+    { n: "IP-Adressen & Subnetze", c: [
+      ["Länge einer IPv4-Adresse?", "32 Bit"], ["Länge einer IPv6-Adresse?", "128 Bit"], ["Länge einer MAC-Adresse?", "48 Bit"],
+      ["Private IPv4-Bereiche (RFC 1918)?", "10.0.0.0/8\n172.16.0.0/12\n192.168.0.0/16"], ["IPv4-Loopback-Bereich?", "127.0.0.0/8 (meist 127.0.0.1)"],
+      ["IPv6-Loopback-Adresse?", "::1"], ["Link-Local-Bereich IPv4 (APIPA)?", "169.254.0.0/16"], ["Link-Local-Präfix IPv6?", "fe80::/10"],
+      ["Bereich für Carrier-Grade NAT?", "100.64.0.0/10"], ["IPv4-Multicast-Bereich?", "224.0.0.0/4 (224.0.0.0 – 239.255.255.255)"],
+      ["Netzmaske zu /24?", "255.255.255.0 – 254 Hosts"], ["Netzmaske zu /26?", "255.255.255.192 – 62 Hosts"], ["Netzmaske zu /28?", "255.255.255.240 – 14 Hosts"],
+      ["Netzmaske zu /30?", "255.255.255.252 – 2 Hosts"], ["Netzmaske zu /16?", "255.255.0.0 – 65.534 Hosts"], ["Nutzbare Hosts in einem /n-Netz (n ≤ 30)?", "2^(32 − n) − 2"],
+      ["Broadcast-Adresse von 192.168.10.0/24?", "192.168.10.255"], ["Netzadresse von 10.1.2.77/27?", "10.1.2.64"],
+      ["Regeln zum Kürzen von IPv6-Adressen?", "Führende Nullen je Block weglassen; eine zusammenhängende Folge von Null-Blöcken einmal durch :: ersetzen"],
+      ["Bereich der IPv6-ULA (private Adressen)?", "fc00::/7 (in der Praxis fd00::/8)"], ["Wofür steht CIDR?", "Classless Inter-Domain Routing – Präfixschreibweise wie /24"]
+    ] },
+    { n: "Wichtige Ports", c: [
+      ["Port 22?", "SSH (auch SFTP/SCP)"], ["Port 21?", "FTP (Steuerkanal)"], ["Port 23?", "Telnet"], ["Port 25?", "SMTP"], ["Port 53?", "DNS"], ["Port 80?", "HTTP"],
+      ["Port 110?", "POP3"], ["Port 123?", "NTP"], ["Port 143?", "IMAP"], ["Port 161?", "SNMP"], ["Port 389?", "LDAP"], ["Port 443?", "HTTPS"], ["Port 445?", "SMB"],
+      ["Port 587?", "SMTP Submission"], ["Port 636?", "LDAPS"], ["Port 993?", "IMAPS"], ["Port 995?", "POP3S"], ["Port 3306?", "MySQL / MariaDB"],
+      ["Port 3389?", "RDP (Remotedesktop)"], ["Port 5432?", "PostgreSQL"], ["Port 1433?", "Microsoft SQL Server"], ["DHCP nutzt welche Ports?", "UDP 67 (Server) und 68 (Client)"]
+    ] },
+    { n: "Informationssicherheit Grundlagen", c: [
+      ["Die drei klassischen Schutzziele?", "Vertraulichkeit, Integrität, Verfügbarkeit"], ["Was bedeutet Integrität?", "Daten sind vollständig und unverändert bzw. Änderungen sind erkennbar"],
+      ["Symmetrische Verschlüsselung?", "Ein gemeinsamer Schlüssel zum Ver- und Entschlüsseln, z. B. AES"], ["Asymmetrische Verschlüsselung?", "Schlüsselpaar aus öffentlichem und privatem Schlüssel, z. B. RSA"],
+      ["Wozu dient eine Hashfunktion wie SHA-256?", "Erzeugt einen Prüfwert fester Länge – erkennt Veränderungen, ist nicht umkehrbar"],
+      ["Was ist Zwei-Faktor-Authentifizierung?", "Anmeldung mit zwei verschiedenen Faktoren, z. B. Wissen (Passwort) und Besitz (Token, App)"],
+      ["Was ist Phishing?", "Täuschende Nachrichten, die zur Preisgabe von Zugangsdaten oder zum Öffnen von Schadsoftware verleiten"],
+      ["Was beschreibt das Least-Privilege-Prinzip?", "Jede Person und jeder Dienst erhält nur die Rechte, die tatsächlich benötigt werden"],
+      ["Was ist eine DMZ?", "Abgeschottetes Netzsegment für aus dem Internet erreichbare Dienste zwischen Firewalls"],
+      ["Unterschied Stateless- und Stateful-Firewall?", "Stateful berücksichtigt den Verbindungszustand, stateless prüft jedes Paket einzeln nach Regeln"],
+      ["3-2-1-Backup-Regel?", "3 Kopien, auf 2 verschiedenen Medien, davon 1 außer Haus bzw. offline"],
+      ["Was heißt „Defense in Depth“?", "Mehrere voneinander unabhängige Schutzschichten statt einer einzelnen Maßnahme"]
+    ] }
+  ];
+const cfg = Object.assign({ d: 0, rev: false, weak: false }, store.get("lk", {})), prog = store.get("lk.prog", {});
+let queue = [], idx = -1, shown = false;
+const card = $("#lc");
+$("#lDeck").innerHTML = DECKS.map((d, i) => `<option value="${i}">${esc(d.n)} (${d.c.length})</option>`).join("");
+const key = i => cfg.d + ":" + DECKS[cfg.d].c[i][0];
+const known = () => DECKS[cfg.d].c.filter((_, j) => prog[key(j)]).length;
+function start() {
+  if (!DECKS[cfg.d]) cfg.d = 0;
+  $("#lDeck").value = cfg.d; queue = [];
+  DECKS[cfg.d].c.forEach((_, j) => { if (!cfg.weak || !prog[key(j)]) queue.push(j); });
+  shuffle(queue); store.set("lk", cfg); next();
+}
+function next() { shown = false; idx = queue.length ? queue.shift() : -1; draw(); }
+function draw() {
+  const c = DECKS[cfg.d].c, k = known(), pct = Math.round(k / c.length * 100);
+  $("#lBar").style.width = pct + "%"; $("#lProg").setAttribute("aria-valuenow", pct);
+  $("#lInfo").textContent = `${k} von ${c.length} gewusst · noch ${queue.length + (idx >= 0 ? 1 : 0)} in dieser Runde`;
+  $("#lRev").setAttribute("aria-pressed", cfg.rev); $("#lWeak").setAttribute("aria-pressed", cfg.weak);
+  if (idx < 0) {
+    card.innerHTML = '<div class="q">Runde geschafft!</div><div class="tag" style="margin-top:8px">Antippen für eine neue Runde</div>';
+    $("#lBtns").style.visibility = "hidden"; return;
+  }
+  const q = c[idx][cfg.rev ? 1 : 0], a = c[idx][cfg.rev ? 0 : 1];
+  card.innerHTML = `<div class="tag">${esc(DECKS[cfg.d].n)}${prog[key(idx)] ? " · gewusst" : ""}</div><div class="q">${esc(q).replace(/\n/g, "<br>")}</div>` +
+    (shown ? `<div class="a">${esc(a)}</div>` : '<div class="tag" style="margin-top:14px">Antippen zum Aufdecken</div>');
+  $("#lBtns").style.visibility = shown ? "visible" : "hidden";
+}
+const tap = () => { if (idx < 0) start(); else { shown = !shown; draw(); } };
+const know = () => { if (idx >= 0) { prog[key(idx)] = 1; store.set("lk.prog", prog); next(); } };
+const again = () => {
+  if (idx < 0) return;
+  delete prog[key(idx)]; store.set("lk.prog", prog);
+  queue.splice(Math.min(3, queue.length), 0, idx); next();
+};
+
+/* Wischen per Pointer Events: aufgedeckt rechts = gewusst, links = nochmal */
+let drag = null, swiped = false;
+card.addEventListener("pointerdown", e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId, dx: 0 }; swiped = false; });
+card.addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!drag.active && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) && shown && idx >= 0) { drag.active = true; card.classList.add("drag"); try { card.setPointerCapture(e.pointerId); } catch {} }
+  if (!drag.active) return;
+  drag.dx = dx;
+  card.style.transform = `translateX(${dx}px) rotate(${dx / 30}deg)`;
+  card.classList.toggle("know", dx > 60); card.classList.toggle("again", dx < -60);
+});
+const endDrag = e => {
+  if (!drag || (e && e.pointerId !== drag.id)) return;
+  const d = drag; drag = null;
+  card.classList.remove("drag", "know", "again"); card.style.transform = "";
+  if (!d.active) return;
+  swiped = true;
+  if (e && e.type === "pointerup") { if (d.dx > 60) know(); else if (d.dx < -60) again(); }
+};
+card.addEventListener("pointerup", endDrag);
+card.addEventListener("pointercancel", endDrag);
+card.onclick = () => { if (swiped) { swiped = false; return; } tap(); };
+
+$("#lKnow").onclick = know;
+$("#lAgain").onclick = again;
+$("#lDeck").onchange = e => { cfg.d = +e.target.value; start(); };
+$("#lRev").onclick = () => { cfg.rev = !cfg.rev; store.set("lk", cfg); shown = false; draw(); };
+$("#lWeak").onclick = () => { cfg.weak = !cfg.weak; start(); };
+$("#lReset").onclick = () => {
+  if (!confirm(`Fortschritt für „${DECKS[cfg.d].n}“ löschen?`)) return;
+  DECKS[cfg.d].c.forEach((_, j) => delete prog[key(j)]);
+  store.set("lk.prog", prog); start();
+};
+const onKey = e => {
+  const t = e.target.tagName;
+  if (t === "INPUT" || t === "SELECT" || t === "TEXTAREA" || (t === "BUTTON" && (e.key === " " || e.key === "Enter"))) return;
+  if (e.key === " " || (e.key === "Enter" && e.target === card)) { e.preventDefault(); tap(); }
+  else if (shown && e.key === "ArrowRight") know();
+  else if (shown && e.key === "ArrowLeft") again();
+};
+document.addEventListener("keydown", onKey);
+onLeave(() => document.removeEventListener("keydown", onKey));
+start();
+})();
+</script>
+</body>
+</html>

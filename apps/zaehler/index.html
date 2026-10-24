@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zähler · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+.cnt{border-radius:var(--radius);margin-bottom:12px;overflow:hidden;background:var(--surface);border:1px solid var(--border)}
+.cnt .hit{display:block;width:100%;border:0;padding:14px 16px 10px;cursor:pointer;text-align:center;touch-action:manipulation;background:var(--accent-soft);color:var(--text);user-select:none;-webkit-user-select:none}
+.cnt .hit:active{background:var(--accent);color:var(--on-accent)}
+.cnt .hit:active .muted{color:inherit;opacity:.8}
+.cnt .hit .v{font-size:52px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cnt .bar{display:flex;align-items:center;gap:2px;padding:6px 8px}
+.cnt .bar .grow{flex:1;min-width:0;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.cnt .bar .btn{flex:none}
+.cnt .bar .btn.tonal{min-width:48px;font-size:20px;padding:0 14px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Zähler</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div id="cList"></div>
+<div class="flex"><input type="text" id="cName" class="grow" placeholder="Name des neuen Zählers" aria-label="Name des neuen Zählers" maxlength="40"><button class="btn" id="cAdd">Hinzufügen</button></div>
+<p class="muted" style="font-size:14px">Tippe auf die große Zahl zum Hochzählen. Halte − gedrückt zum schnellen Herunterzählen.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Zähler
+   ========================================================= */
+/* Löst sofort beim Antippen aus (Pointer Events); mit repeat (ms) wiederholt beim Halten.
+   Tastatur: Enter/Leertaste. */
+function onPress(el, fn, repeat) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0 || el.disabled) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn(e);
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(() => { if (el.disabled || !el.isConnected) stop(); else fn(); }, repeat); }, 280);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) el.addEventListener(ev, stop);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); fn(e); } });
+}
+let list = store.get("counters", null);
+if (!Array.isArray(list)) list = [{ n: "Zähler", v: 0 }];
+const save = () => store.set("counters", list);
+function draw() {
+  $("#cList").innerHTML = list.map((c, i) =>
+    `<div class="cnt"><button class="hit" data-a="inc" data-i="${i}" aria-label="${esc(c.n)}: plus 1"><div class="v">${c.v}</div><div class="muted" style="font-size:13px">antippen für +1</div></button>` +
+    `<div class="bar"><span class="grow">${esc(c.n)}</span><button class="btn tonal" data-a="dec" data-i="${i}" aria-label="Minus">−</button>` +
+    `<button class="btn text" data-a="ren" data-i="${i}">Name</button><button class="btn text" data-a="rst" data-i="${i}" aria-label="Auf 0 setzen">0</button><button class="btn text" data-a="del" data-i="${i}" aria-label="Löschen">✕</button></div></div>`).join("")
+    || '<div class="card muted">Kein Zähler vorhanden.</div>';
+  $$("#cList [data-a=dec]").forEach(b => onPress(b, () => { const c = list[+b.dataset.i]; c.v--; save(); b.closest(".cnt").querySelector(".v").textContent = c.v; }, 120));
+}
+$("#cList").onclick = e => {
+  const b = e.target.closest("[data-a]"); if (!b) return;
+  const i = +b.dataset.i, a = b.dataset.a, c = list[i];
+  if (a === "inc") { c.v++; save(); b.querySelector(".v").textContent = c.v; return; }
+  if (a === "dec") return;
+  if (a === "rst") { if (c.v && confirm(`„${c.n}“ auf 0 setzen?`)) c.v = 0; }
+  else if (a === "ren") { const n = prompt("Neuer Name", c.n); if (n != null && n.trim()) c.n = n.slice(0, 40); }
+  else if (a === "del") { if (confirm(`„${c.n}“ löschen?`)) list.splice(i, 1); }
+  save(); draw();
+};
+function add() { const n = $("#cName").value.trim() || "Zähler " + (list.length + 1); list.push({ n, v: 0 }); $("#cName").value = ""; save(); draw(); }
+$("#cAdd").onclick = add;
+$("#cName").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+draw();
+})();
+</script>
+</body>
+</html>

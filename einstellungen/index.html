@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Einstellungen · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../manifest.json">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/style.css">
+
+<script>var ROOT="../";</script>
+<script src="../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Einstellungen</h1>
+    <a class="iconbtn" href="../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+    const app = $("#app");
+  app.innerHTML = `
+    <div class="card">
+      <h3>Darstellung</h3>
+      <div class="seg" role="group" aria-label="Design">
+        ${[["system","System"],["light","Hell"],["dark","Dunkel"]].map(([v, l]) => `<button data-v="${v}" aria-pressed="${settings.theme === v}">${l}</button>`).join("")}
+      </div>
+      <label class="switch" style="margin-top:8px"><span>OLED-Schwarz im Dark-Mode (reiner schwarzer Hintergrund)</span><input type="checkbox" id="oled" ${settings.oled ? "checked" : ""}></label>
+      <p class="muted" style="font-size:14px;margin:4px 0 0">Die Akzentfarbe stellst du im Werkzeug <a href="../tools/palette/">Farbe &amp; Palette</a> ein.</p>
+    </div>
+    <div class="card">
+      <h3>Als App installieren</h3>
+      <p class="muted" style="font-size:14px;margin:0 0 10px" id="instText"></p>
+      <button class="btn" id="instBtn" hidden>Installieren</button>
+    </div>
+    <div class="card">
+      <h3>Daten</h3>
+      <p class="muted" style="font-size:14px;margin:0 0 10px">Einstellungen, Verknüpfungen, Verlauf und die letzte Transkription liegen nur in diesem Browser auf diesem Gerät. Heruntergeladene Sprachmodelle verwaltest du im Werkzeug <a href="../tools/transkription/">Transkription</a>.</p>
+      <button class="btn danger" id="wipe">Alle lokalen Daten löschen</button>
+    </div>`;
+  $$(".seg button", app).forEach(b => b.onclick = () => {
+    settings.theme = b.dataset.v; saveSettings();
+    $$(".seg button", app).forEach(x => x.setAttribute("aria-pressed", x === b));
+  });
+  const instDraw = () => {
+    const t = $("#instText"), b = $("#instBtn");
+    b.hidden = !install.prompt || install.standalone;
+    t.textContent = install.standalone ? "Systemtools läuft bereits als installierte App."
+      : install.prompt ? "Systemtools mit eigenem Symbol auf dem Startbildschirm bzw. im Startmenü, ohne Browserleiste und auch offline nutzbar."
+      : install.ios ? "In Safari unten auf „Teilen“ tippen und „Zum Home-Bildschirm“ wählen."
+      : "Im Browsermenü „App installieren“ bzw. „Zum Startbildschirm hinzufügen“ wählen. Ist die App schon installiert, öffnest du sie über ihr Symbol.";
+  };
+  $("#instBtn").onclick = () => installApp();
+  install.subs.add(instDraw); instDraw();
+  $("#oled").onchange = e => { settings.oled = e.target.checked; saveSettings(); };
+  $("#wipe").onclick = () => {
+    if (!confirm("Alle gespeicherten Einstellungen, Verknüpfungen und Verläufe löschen?")) return;
+    try { Object.keys(localStorage).filter(k => k.startsWith("st.")).forEach(k => localStorage.removeItem(k)); } catch {}
+    location.reload();
+  };
+})();
+</script>
+</body>
+</html>

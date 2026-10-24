@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buchstabieren &amp; Morse · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+#spOut{font-size:17px;line-height:1.7}
+#spOut .ch{display:inline-block;min-width:1.4em;font-weight:700;font-family:var(--mono)}
+#spOut .morse{font-family:var(--mono);font-size:20px;letter-spacing:.06em}
+#spOut .dec{font-size:22px;font-weight:700}
+#flash{height:70px;border-radius:12px;margin-top:12px;background:var(--surface-2);border:1px solid var(--border)}
+#flash.on{background:var(--accent);border-color:var(--accent)}
+#spTbl td.k{font-family:var(--mono);font-weight:700;width:1%;white-space:nowrap;padding-right:12px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Buchstabieren &amp; Morse</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="spAlpha" role="group" style="margin-bottom:12px"><button data-a="nato">NATO / ICAO</button><button data-a="de">Deutsch</button><button data-a="morse">Morse</button></div>
+<div class="card">
+  <label class="fld" for="spIn" id="spInL">Text</label><input type="text" id="spIn" autocomplete="off" spellcheck="false" placeholder="z. B. Kundennummer oder Name">
+  <div class="chips mt" id="spDir" hidden><button data-d="enc">Text → Morse</button><button data-d="dec">Morse → Text</button></div>
+  <div class="result" id="spOut" aria-live="polite"></div>
+  <div id="flash" hidden></div>
+  <div class="row mt"><button class="btn tonal" id="spCopy">Kopieren</button><button class="btn tonal" id="spPlay" hidden>Als Lichtsignal abspielen</button></div>
+</div>
+<div class="card"><h3 id="spTblH">Tabelle</h3><table class="tbl" id="spTbl"></table></div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Buchstabieren & Morse
+   ========================================================= */
+/* Daten unverändert aus der WP-Version */
+const NATO = { A: "Alfa", B: "Bravo", C: "Charlie", D: "Delta", E: "Echo", F: "Foxtrot", G: "Golf", H: "Hotel", I: "India", J: "Juliett", K: "Kilo", L: "Lima", M: "Mike",
+    N: "November", O: "Oscar", P: "Papa", Q: "Quebec", R: "Romeo", S: "Sierra", T: "Tango", U: "Uniform", V: "Victor", W: "Whiskey", X: "X-ray", Y: "Yankee", Z: "Zulu",
+    "0": "Zero", "1": "One", "2": "Two", "3": "Three", "4": "Four", "5": "Five", "6": "Six", "7": "Seven", "8": "Eight", "9": "Niner" };
+  const DE = { A: "Anton", "Ä": "Ärger", B: "Berta", C: "Cäsar", CH: "Charlotte", D: "Dora", E: "Emil", F: "Friedrich", G: "Gustav", H: "Heinrich", I: "Ida", J: "Julius",
+    K: "Kaufmann", L: "Ludwig", M: "Martha", N: "Nordpol", O: "Otto", "Ö": "Ökonom", P: "Paula", Q: "Quelle", R: "Richard", S: "Samuel", SCH: "Schule", "ß": "Eszett",
+    T: "Theodor", U: "Ulrich", "Ü": "Übermut", V: "Viktor", W: "Wilhelm", X: "Xanthippe", Y: "Ypsilon", Z: "Zacharias",
+    "0": "Null", "1": "Eins", "2": "Zwo", "3": "Drei", "4": "Vier", "5": "Fünf", "6": "Sechs", "7": "Sieben", "8": "Acht", "9": "Neun" };
+  const MORSE = { A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....", I: "..", J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.", O: "---", P: ".--.",
+    Q: "--.-", R: ".-.", S: "...", T: "-", U: "..-", V: "...-", W: ".--", X: "-..-", Y: "-.--", Z: "--..", "Ä": ".-.-", "Ö": "---.", "Ü": "..--", "ß": "...--..",
+    "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-", "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----.",
+    ".": ".-.-.-", ",": "--..--", "?": "..--..", "/": "-..-.", "@": ".--.-.", "=": "-...-", "-": "-....-", ":": "---...", "'": ".----.", "(": "-.--.", ")": "-.--.-", "+": ".-.-.", "\"": ".-..-." };
+const REV = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
+const s = Object.assign({ a: "nato", d: "enc", t: "" }, store.get("spell", {}));
+const inp = $("#spIn"), out = $("#spOut"), flash = $("#flash"), playBtn = $("#spPlay");
+let playing = 0, hasOut = false;
+
+function spellDE(txt) {
+  const res = [];
+  let i = 0;
+  while (i < txt.length) {
+    const c3 = txt.substr(i, 3).toUpperCase(), c2 = txt.substr(i, 2).toUpperCase(), ch = txt.charAt(i), up = ch === "ß" ? "ß" : ch.toUpperCase();
+    if (c3 === "SCH") { res.push(["Sch", DE.SCH]); i += 3; continue; }
+    if (c2 === "CH") { res.push(["Ch", DE.CH]); i += 2; continue; }
+    res.push([ch, DE[up] || (ch === " " ? "Leerzeichen" : ch)]); i++;
+  }
+  return res;
+}
+const upc = c => c === "ß" ? c : c.toUpperCase();
+function render() {
+  const t = inp.value;
+  s.t = t; store.set("spell", s);
+  if (s.a === "morse") {
+    if (s.d === "enc") {
+      const mw = t.split(/\s+/).map(w => [...w].map(c => MORSE[upc(c)]).filter(Boolean).join(" ")).filter(Boolean);
+      hasOut = mw.length > 0;
+      out.innerHTML = hasOut ? `<span class="morse">${esc(mw.join(" / "))}</span>` : '<span class="muted">Text eingeben</span>';
+    } else {
+      const res = t.replace(/[·•]/g, ".").replace(/[–—_]/g, "-").split(/\s*[/|]\s*|\s{3,}/)
+        .map(w => w.trim().split(/\s+/).filter(Boolean).map(c => REV[c] || "�").join(""));
+      hasOut = !!t.replace(/\s+/g, "");
+      out.innerHTML = hasOut ? `<span class="dec">${esc(res.join(" "))}</span>` : '<span class="muted">Morsezeichen mit Punkt und Strich eingeben, Buchstaben mit Leerzeichen, Wörter mit / trennen</span>';
+    }
+    return;
+  }
+  const list = s.a === "de" ? spellDE(t) : [...t].map(c => [c, NATO[c.toUpperCase()] || (c === " " ? "(Leerzeichen)" : c)]);
+  hasOut = list.length > 0;
+  out.innerHTML = hasOut ? list.map(([c, w]) => `<span class="ch">${esc(c)}</span> ${esc(w)}`).join("<br>") : '<span class="muted">Text eingeben</span>';
+}
+/* Buchstaben vor Ziffern vor Satzzeichen (Object.keys stellt Ziffern sonst an den Anfang) */
+const keyOrder = o => { const k = Object.keys(o), r = [/^[A-ZÄÖÜß]+$/i, /^\d$/]; return [...k.filter(x => r[0].test(x)), ...k.filter(x => r[1].test(x)), ...k.filter(x => !r[0].test(x) && !r[1].test(x))]; };
+function table() {
+  const src = s.a === "nato" ? NATO : s.a === "de" ? DE : MORSE, keys = keyOrder(src), mo = s.a === "morse" ? ' class="mono"' : "";
+  let h = "";
+  for (let i = 0; i < keys.length; i += 2) {
+    const cell = k => k != null ? `<td class="k">${esc(k)}</td><td${mo}>${esc(src[k])}</td>` : "<td></td><td></td>";
+    h += `<tr>${cell(keys[i])}${cell(keys[i + 1])}</tr>`;
+  }
+  $("#spTbl").innerHTML = h;
+  $("#spTblH").textContent = s.a === "nato" ? "NATO-/ICAO-Alphabet" : s.a === "de" ? "Deutsche Buchstabiertafel (traditionell)" : "Morsealphabet";
+}
+function ui() {
+  stop();
+  $$("#spAlpha button").forEach(b => b.setAttribute("aria-pressed", b.dataset.a === s.a));
+  $$("#spDir button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === s.d));
+  const mo = s.a === "morse", dec = mo && s.d === "dec";
+  $("#spDir").hidden = !mo; playBtn.hidden = !mo || s.d !== "enc";
+  $("#spInL").textContent = dec ? "Morsecode" : "Text";
+  inp.classList.toggle("mono", dec);
+  table(); render();
+}
+function stop() {
+  clearTimeout(playing); playing = 0;
+  flash.hidden = true; flash.classList.remove("on");
+  playBtn.textContent = "Als Lichtsignal abspielen";
+}
+function play() {
+  if (playing) { stop(); return; }
+  const U = 160, seq = [];
+  for (const c of out.textContent) {
+    if (c === ".") seq.push([1, U], [0, U]);
+    else if (c === "-") seq.push([1, 3 * U], [0, U]);
+    else if (c === " " || c === "/") seq.push([0, 2 * U]);
+  }
+  if (!seq.length) return;
+  flash.hidden = false; playBtn.textContent = "Stopp";
+  let i = 0;
+  const step = () => {
+    if (i >= seq.length) { stop(); return; }
+    flash.classList.toggle("on", !!seq[i][0]);
+    playing = setTimeout(step, seq[i][1]); i++;
+  };
+  step();
+}
+inp.value = s.t;
+inp.oninput = render;
+$("#spAlpha").onclick = e => { const b = e.target.closest("button"); if (b) { s.a = b.dataset.a; ui(); } };
+$("#spDir").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const nd = b.dataset.d;
+  if (nd !== s.d && hasOut) inp.value = out.textContent;
+  s.d = nd; ui();
+};
+$("#spCopy").onclick = () => { if (hasOut) copy(out.innerText.trim()); };
+playBtn.onclick = play;
+onLeave(stop);
+ui();
+})();
+</script>
+</body>
+</html>

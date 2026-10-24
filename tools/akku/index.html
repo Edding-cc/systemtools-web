@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Akku · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Akku</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Akku
+   ========================================================= */
+function viewAkku(app) {
+  app.innerHTML = `<div class="hint">Webseiten sehen nur Ladestand und Ladezustand. Temperatur, Spannung und Akkuzustand gibt der Browser nicht preis. Firefox und Safari unterstützen die Akku-Schnittstelle gar nicht.</div><div id="bat"></div>`;
+  if (!navigator.getBattery) { $("#bat").innerHTML = `<div class="card">${supported(false)} <span class="muted">Dein Browser stellt keine Akku-Infos bereit.</span></div>`; return; }
+  const secs = s => !isFinite(s) || s <= 0 ? "–" : `${Math.floor(s / 3600)} h ${Math.round(s % 3600 / 60)} min`;
+  navigator.getBattery().then(b => {
+    const draw = () => {
+      $("#bat").innerHTML = `<div class="card" style="text-align:center"><div class="big">${Math.round(b.level * 100)} <span class="unit">%</span></div>
+        <div style="height:14px;background:var(--surface-2);border-radius:7px;overflow:hidden;margin:12px 0"><div style="height:100%;width:${b.level * 100}%;background:${b.level < .15 ? "var(--err)" : "var(--ok)"}"></div></div>
+        <div class="muted">${b.charging ? "Wird geladen" : "Entlädt"}</div></div>
+        <div class="card">${kv({ "Ladezustand": b.charging ? "lädt" : "lädt nicht", "Voll in": b.charging ? secs(b.chargingTime) : "–", "Leer in": !b.charging ? secs(b.dischargingTime) : "–" })}</div>`;
+    };
+    draw();
+    const evs = ["levelchange", "chargingchange", "chargingtimechange", "dischargingtimechange"];
+    evs.forEach(e => b.addEventListener(e, draw));
+    onLeave(() => evs.forEach(e => b.removeEventListener(e, draw)));
+  });
+}
+
+viewAkku($("#app"));
+})();
+</script>
+</body>
+</html>
