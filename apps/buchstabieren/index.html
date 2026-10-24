@@ -64,7 +64,11 @@ input[type=search].search{appearance:none}
   <div class="chips mt" id="spDir" hidden><button data-d="enc">Text → Morse</button><button data-d="dec">Morse → Text</button></div>
   <div class="result" id="spOut" aria-live="polite"></div>
   <div id="flash" hidden></div>
-  <div class="row mt"><button class="btn tonal" id="spCopy">Kopieren</button><button class="btn tonal" id="spPlay" hidden>Als Lichtsignal abspielen</button></div>
+  <div class="row mt"><button class="btn tonal" id="spCopy">Kopieren</button><button class="btn tonal" id="spPlay" hidden>Abspielen</button></div>
+  <div id="spPlayOpt" hidden>
+    <div class="chips mt" id="spOpt" role="group" aria-label="Wiedergabe zusätzlich über"><button data-o="vib">Vibration</button><button data-o="torch">Taschenlampe</button></div>
+    <p class="muted" id="spMsg" style="margin:8px 0 0;font-size:14px"></p>
+  </div>
 </div>
 <div class="card"><h3 id="spTblH">Tabelle</h3><table class="tbl" id="spTbl"></table></div>
 </main>
@@ -87,9 +91,10 @@ const NATO = { A: "Alfa", B: "Bravo", C: "Charlie", D: "Delta", E: "Echo", F: "F
     "0": "-----", "1": ".----", "2": "..---", "3": "...--", "4": "....-", "5": ".....", "6": "-....", "7": "--...", "8": "---..", "9": "----.",
     ".": ".-.-.-", ",": "--..--", "?": "..--..", "/": "-..-.", "@": ".--.-.", "=": "-...-", "-": "-....-", ":": "---...", "'": ".----.", "(": "-.--.", ")": "-.--.-", "+": ".-.-.", "\"": ".-..-." };
 const REV = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
-const s = Object.assign({ a: "nato", d: "enc", t: "" }, store.get("spell", {}));
-const inp = $("#spIn"), out = $("#spOut"), flash = $("#flash"), playBtn = $("#spPlay");
-let playing = 0, hasOut = false;
+const s = Object.assign({ a: "nato", d: "enc", t: "", vib: false, torch: false }, store.get("spell", {}));
+const inp = $("#spIn"), out = $("#spOut"), flash = $("#flash"), playBtn = $("#spPlay"), msg = $("#spMsg");
+const canVib = "vibrate" in navigator;
+let playing = 0, active = false, run = 0, torchStream = null, torchTrack = null, hasOut = false;
 
 function spellDE(txt) {
   const res = [];
@@ -140,18 +145,35 @@ function ui() {
   $$("#spAlpha button").forEach(b => b.setAttribute("aria-pressed", b.dataset.a === s.a));
   $$("#spDir button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === s.d));
   const mo = s.a === "morse", dec = mo && s.d === "dec";
-  $("#spDir").hidden = !mo; playBtn.hidden = !mo || s.d !== "enc";
+  $$("#spOpt button").forEach(b => b.setAttribute("aria-pressed", !!s[b.dataset.o]));
+  $("#spDir").hidden = !mo; playBtn.hidden = $("#spPlayOpt").hidden = !mo || s.d !== "enc";
   $("#spInL").textContent = dec ? "Morsecode" : "Text";
   inp.classList.toggle("mono", dec);
   table(); render();
 }
+/* Wiedergabe: Bildschirm blinkt immer, Vibration und Taschenlampe (Kamerablitz) optional */
+function setTorch(on) { torchTrack?.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {}); }
 function stop() {
+  run++; active = false;
   clearTimeout(playing); playing = 0;
   flash.hidden = true; flash.classList.remove("on");
-  playBtn.textContent = "Als Lichtsignal abspielen";
+  if (canVib) try { navigator.vibrate(0); } catch {}
+  torchStream?.getTracks().forEach(t => t.stop()); torchStream = torchTrack = null;
+  playBtn.textContent = "Abspielen";
 }
-function play() {
-  if (playing) { stop(); return; }
+async function torchOn(id) {
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+    if (id !== run) { st.getTracks().forEach(t => t.stop()); return; }
+    const tr = st.getVideoTracks()[0];
+    if (!tr.getCapabilities?.().torch) { st.getTracks().forEach(t => t.stop()); msg.textContent = "Diese Kamera hat keinen steuerbaren Blitz – es blinkt nur der Bildschirm."; return; }
+    torchStream = st; torchTrack = tr;
+  } catch (e) {
+    if (id === run) msg.textContent = e.name === "NotAllowedError" ? "Kamerazugriff verweigert – es blinkt nur der Bildschirm." : "Keine Taschenlampe verfügbar – es blinkt nur der Bildschirm.";
+  }
+}
+async function play() {
+  if (active) { stop(); return; }
   const U = 160, seq = [];
   for (const c of out.textContent) {
     if (c === ".") seq.push([1, U], [0, U]);
@@ -159,12 +181,20 @@ function play() {
     else if (c === " " || c === "/") seq.push([0, 2 * U]);
   }
   if (!seq.length) return;
-  flash.hidden = false; playBtn.textContent = "Stopp";
+  const id = ++run, vib = s.vib && canVib;
+  active = true; playBtn.textContent = "Stopp";
+  msg.textContent = s.vib && !canVib ? "Dein Browser unterstützt keine Vibration (z. B. iPhone)." : "";
+  if (s.torch) await torchOn(id);
+  if (id !== run) return;
+  flash.hidden = false;
   let i = 0;
   const step = () => {
     if (i >= seq.length) { stop(); return; }
-    flash.classList.toggle("on", !!seq[i][0]);
-    playing = setTimeout(step, seq[i][1]); i++;
+    const [on, ms] = seq[i];
+    flash.classList.toggle("on", !!on);
+    setTorch(!!on);
+    if (on && vib) try { navigator.vibrate(ms); } catch {}
+    playing = setTimeout(step, ms); i++;
   };
   step();
 }
@@ -179,6 +209,13 @@ $("#spDir").onclick = e => {
 };
 $("#spCopy").onclick = () => { if (hasOut) copy(out.innerText.trim()); };
 playBtn.onclick = play;
+$("#spOpt").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const k = b.dataset.o; s[k] = !s[k]; store.set("spell", s);
+  b.setAttribute("aria-pressed", s[k]);
+  msg.textContent = s.vib && !canVib ? "Dein Browser unterstützt keine Vibration (z. B. iPhone)." : "";
+  if (active) stop();
+};
 onLeave(stop);
 ui();
 })();
