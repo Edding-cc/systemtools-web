@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trinkgeldrechner · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+#tgSum{font-size:22px}
+#tgPpl{font-size:28px}
+#tgMinus,#tgPlus{width:56px;font-size:22px;padding:0}
+.stats b{font-size:22px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Trinkgeldrechner</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="card">
+<label class="fld" for="tgSum">Rechnungsbetrag (€)</label><input type="text" inputmode="decimal" autocomplete="off" id="tgSum" class="mono" placeholder="0,00">
+<label class="fld">Trinkgeld</label><div class="chips" id="tgPct"></div>
+<label class="fld" for="tgOwn">Eigener Prozentsatz</label><input type="text" inputmode="decimal" autocomplete="off" id="tgOwn" class="mono" placeholder="z. B. 12">
+<label class="fld">Personen</label>
+<div class="flex"><button class="btn tonal" id="tgMinus" aria-label="Weniger">−</button><div class="grow center big" id="tgPpl" aria-live="polite">1</div><button class="btn tonal" id="tgPlus" aria-label="Mehr">+</button></div>
+<label class="switch mt"><span>Pro Person auf ganze Euro aufrunden</span><input type="checkbox" id="tgRound"></label>
+</div>
+<div class="card">
+<div class="stats"><div><b id="tgTip">–</b><span>Trinkgeld</span></div><div><b id="tgTot">–</b><span>Gesamt</span></div></div>
+<div class="result center" style="margin-top:0"><div class="muted">Pro Person</div><div class="big" id="tgEach">–</div><div class="muted" id="tgNote" style="font-size:13px"></div></div>
+</div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Trinkgeldrechner
+   ========================================================= */
+/* "1.234,5" oder "1234.5" -> Zahl, sonst NaN */
+function parseNum(v) {
+  v = String(v ?? "").replace(/[\s ']/g, "");
+  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  return /^[+\-]?(\d+\.?\d*|\.\d+)(e[+\-]?\d+)?$/i.test(v) ? parseFloat(v) : NaN;
+}
+/* Löst sofort beim Antippen aus (Pointer Events); mit repeat (ms) wiederholt beim Halten.
+   Tastatur: Enter/Leertaste. */
+function onPress(el, fn, repeat) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0 || el.disabled) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn(e);
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(() => { if (el.disabled || !el.isConnected) stop(); else fn(); }, repeat); }, 280);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) el.addEventListener(ev, stop);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); fn(e); } });
+}
+const PCTS = [0, 5, 10, 15, 20];
+const s = Object.assign({ sum: "", pct: 10, own: "", ppl: 1, round: false }, store.get("tip", {}));
+const eur = v => nf(v, 2) + " €";
+function draw() {
+  $("#tgPct").innerHTML = PCTS.map(p => `<button data-p="${p}" aria-pressed="${s.own === "" && s.pct === p}">${p} %</button>`).join("");
+  $("#tgPpl").textContent = s.ppl;
+  $("#tgRound").checked = !!s.round;
+  const sum = parseNum(s.sum), p = s.own !== "" ? parseNum(s.own) : s.pct;
+  store.set("tip", s);
+  if (isNaN(sum) || isNaN(p) || sum < 0) { $("#tgTip").textContent = $("#tgTot").textContent = $("#tgEach").textContent = "–"; $("#tgNote").textContent = ""; return; }
+  let tip = sum * p / 100, tot = sum + tip, each = tot / s.ppl, note = "";
+  if (s.round) {
+    const r = Math.ceil(each - 1e-9);
+    if (r !== each) { tot = r * s.ppl; tip = tot - sum; note = `aufgerundet, effektiv ${nf(sum ? tip / sum * 100 : 0, 1)} % Trinkgeld`; }
+    each = r;
+  }
+  $("#tgTip").textContent = eur(tip); $("#tgTot").textContent = eur(tot); $("#tgEach").textContent = eur(each); $("#tgNote").textContent = note;
+}
+$("#tgSum").value = s.sum; $("#tgOwn").value = s.own;
+$("#tgSum").oninput = e => { s.sum = e.target.value; draw(); };
+$("#tgOwn").oninput = e => { s.own = e.target.value.replace(/\s+/g, ""); draw(); };
+$("#tgPct").onclick = e => { const b = e.target.closest("button"); if (b) { s.pct = +b.dataset.p; s.own = ""; $("#tgOwn").value = ""; draw(); } };
+onPress($("#tgMinus"), () => { if (s.ppl > 1) { s.ppl--; draw(); } }, 150);
+onPress($("#tgPlus"), () => { if (s.ppl < 99) { s.ppl++; draw(); } }, 150);
+$("#tgRound").onchange = e => { s.round = e.target.checked; draw(); };
+draw();
+})();
+</script>
+</body>
+</html>

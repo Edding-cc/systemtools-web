@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tic-Tac-Toe · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#tt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(100%,360px);margin:0 auto 12px;container-type:inline-size;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#tt .f{aspect-ratio:1;border:0;padding:0;border-radius:12px;background:var(--surface-2);cursor:pointer;display:grid;place-items:center;font-weight:700;font-size:18cqw;line-height:1;color:var(--text);box-shadow:inset 0 0 0 1px var(--border)}
+#tt .f:disabled{cursor:default}
+#tt .f:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#tt .X{color:var(--accent)}
+:root[data-dark="1"] #tt .X{color:color-mix(in srgb,var(--accent) 45%,#fff)}
+#tt .O{color:var(--err)}
+#tt .win{background:var(--accent-soft);animation:pop .3s}
+@keyframes pop{from{transform:scale(.7)}to{transform:scale(1)}}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Tic-Tac-Toe</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="tMode"><button data-m="easy">Computer leicht</button><button data-m="hard">Computer unschlagbar</button><button data-m="two">2 Spieler</button></div>
+  <div class="stats"><div><b id="tX">0</b><span id="tXl">Du (X)</span></div><div><b id="tD">0</b><span>Unentschieden</span></div><div><b id="tO">0</b><span id="tOl">Computer (O)</span></div></div>
+  <div id="tt" aria-label="Spielfeld"></div>
+  <p class="msg" id="tMsg" role="status"></p>
+  <div class="ctl"><button id="tNew" class="ac">Neue Runde</button><button id="tReset" class="tonal">Stand löschen</button></div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Tic-Tac-Toe
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+
+const LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+const MODES = ["easy", "hard", "two"];
+let mode = store.get("ttt.mode", "hard"); if (!MODES.includes(mode)) mode = "hard";
+let score = Object.assign({ X: 0, O: 0, D: 0 }, store.get("ttt.score", {}));
+let b, turn, over, starter = "X", cpuTimer = 0;
+onLeave(() => clearTimeout(cpuTimer));
+
+function winner(bd) {
+  for (const l of LINES) if (bd[l[0]] && bd[l[0]] === bd[l[1]] && bd[l[1]] === bd[l[2]]) return { p: bd[l[0]], l };
+  return bd.every(Boolean) ? { p: "D", l: [] } : null;
+}
+/* Minimax mit Tiefe: schnellster Sieg, spätester Verlust */
+function minimax(bd, p, depth) {
+  const w = winner(bd);
+  if (w) return { s: w.p === "O" ? 10 - depth : w.p === "X" ? depth - 10 : 0 };
+  let best = { s: p === "O" ? -99 : 99, i: -1 };
+  for (let i = 0; i < 9; i++) {
+    if (bd[i]) continue;
+    bd[i] = p; const r = minimax(bd, p === "O" ? "X" : "O", depth + 1); bd[i] = "";
+    if ((p === "O" && r.s > best.s) || (p === "X" && r.s < best.s)) best = { s: r.s, i };
+  }
+  return best;
+}
+function cpuMove() {
+  const free = b.reduce((a, v, i) => (v || a.push(i), a), []);
+  if (mode === "easy" && rnd(100) < 60) return free[rnd(free.length)];
+  if (free.length === 9) return [0, 2, 4, 6, 8][rnd(5)];
+  return minimax(b, "O", 0).i;
+}
+function cpuTurn() { clearTimeout(cpuTimer); cpuTimer = setTimeout(() => play(cpuMove()), 350); }
+function newRound() {
+  clearTimeout(cpuTimer);
+  b = Array(9).fill(""); over = false; turn = starter;
+  starter = starter === "X" ? "O" : "X";
+  labels(); render([]);
+  if (mode !== "two" && turn === "O") cpuTurn();
+}
+function labels() {
+  $("#tXl").textContent = mode === "two" ? "Spieler X" : "Du (X)";
+  $("#tOl").textContent = mode === "two" ? "Spieler O" : "Computer (O)";
+  $("#tX").textContent = score.X; $("#tO").textContent = score.O; $("#tD").textContent = score.D;
+  $$("#tMode button").forEach(bt => bt.setAttribute("aria-pressed", bt.dataset.m === mode));
+  if (!over) $("#tMsg").textContent = mode === "two" ? turn + " ist dran" : turn === "X" ? "Du bist dran" : "Computer denkt …";
+}
+function render(win) {
+  const cpu = mode !== "two" && turn === "O";
+  $("#tt").innerHTML = b.map((v, i) =>
+    `<button class="f ${v}${win.includes(i) ? " win" : ""}" data-i="${i}" aria-label="Feld ${i + 1}${v ? ": " + v : ""}"${v || over || cpu ? " disabled" : ""}>${v === "X" ? "✕" : v === "O" ? "○" : ""}</button>`).join("");
+}
+function play(i) {
+  if (over || b[i] || i < 0) return;
+  b[i] = turn;
+  const w = winner(b);
+  if (w) {
+    over = true; score[w.p]++; store.set("ttt.score", score);
+    $("#tMsg").textContent = w.p === "D" ? "Unentschieden" : mode === "two" ? w.p + " gewinnt!" : w.p === "X" ? "Du gewinnst!" : "Der Computer gewinnt.";
+    labels(); render(w.l); return;
+  }
+  turn = turn === "X" ? "O" : "X"; labels(); render([]);
+  if (mode !== "two" && turn === "O") cpuTurn();
+}
+$("#tt").onclick = e => {
+  const f = e.target.closest(".f"); if (!f) return;
+  if (mode !== "two" && turn === "O") return;
+  play(+f.dataset.i);
+};
+$("#tNew").onclick = newRound;
+$("#tReset").onclick = () => { score = { X: 0, O: 0, D: 0 }; store.set("ttt.score", score); labels(); };
+$("#tMode").onclick = e => {
+  const bt = e.target.closest("button"); if (!bt) return;
+  mode = bt.dataset.m; store.set("ttt.mode", mode); score = { X: 0, O: 0, D: 0 }; store.set("ttt.score", score); starter = "X"; newRound();
+};
+newRound();
+})();
+</script>
+</body>
+</html>

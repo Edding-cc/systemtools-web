@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Passwortgenerator · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+.pw{font-family:var(--mono);font-size:17px;word-break:break-all}
+.meter{height:8px;border-radius:4px;margin:8px 0 4px;overflow:hidden;background:var(--surface-2)}
+.meter i{display:block;height:100%;width:0;border-radius:4px;background:var(--accent);transition:width .2s}
+#pOut .list-item{align-items:center}
+.nope{margin:6px 0 0;padding-left:18px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Passwortgenerator</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="pMode" role="group" style="margin-bottom:12px"><button data-m="chars">Passwort</button><button data-m="pin">PIN</button><button data-m="check">Prüfen</button></div>
+<div id="pGen">
+<div class="card">
+<label class="fld" for="pLen">Länge: <b id="pLenV"></b> Zeichen</label><input type="range" id="pLen" min="4" max="64">
+<div id="pSets">
+<label class="switch"><span>Großbuchstaben A–Z</span><input type="checkbox" data-k="up"></label>
+<label class="switch"><span>Kleinbuchstaben a–z</span><input type="checkbox" data-k="lo"></label>
+<label class="switch"><span>Ziffern 0–9</span><input type="checkbox" data-k="di"></label>
+<label class="switch"><span>Sonderzeichen !#$%…</span><input type="checkbox" data-k="sy"></label>
+<label class="switch"><span>Verwechselbare Zeichen meiden (I l 1 O 0 …)</span><input type="checkbox" data-k="amb"></label>
+</div>
+<div class="meter"><i id="pBar"></i></div><div class="muted" style="font-size:13px" id="pEnt"></div>
+</div>
+<div class="ctl c2"><button id="pGo" class="ac">Erzeugen</button><button id="pCp" class="tonal">Erstes kopieren</button></div>
+<div class="card" id="pOut"></div>
+</div>
+<div id="pChk" hidden>
+<div class="card">
+<label class="fld" for="pIn">Passwort zum Prüfen</label>
+<div class="flex"><input type="password" id="pIn" class="grow mono" autocomplete="off" spellcheck="false"><button class="btn tonal" id="pShow">Zeigen</button></div>
+<div class="meter"><i id="cBar"></i></div><div id="cOut" style="font-size:14px"></div>
+</div>
+<p class="hint">Die Prüfung läuft nur auf deinem Gerät, es wird nichts gesendet. Sie ist eine grobe Schätzung nach Länge und Zeichenarten und erkennt keine Wörterbuch- oder geleakten Passwörter.</p>
+</div>
+<p class="muted" style="font-size:13px">Zufall: crypto.getRandomValues. Passwörter werden nicht gespeichert.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Passwortgenerator
+   ========================================================= */
+/* gleichverteilte Ganzzahl 0 … n-1 aus crypto.getRandomValues (ohne Modulo-Verzerrung) */
+const rndBuf = new Uint32Array(1);
+function rnd(n) {
+  const lim = 4294967296 - (4294967296 % n);
+  let x;
+  do { crypto.getRandomValues(rndBuf); x = rndBuf[0]; } while (x >= lim);
+  return x % n;
+}
+/* Löst sofort beim Antippen aus (Pointer Events); mit repeat (ms) wiederholt beim Halten.
+   Tastatur: Enter/Leertaste. */
+function onPress(el, fn, repeat) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0 || el.disabled) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn(e);
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(() => { if (el.disabled || !el.isConnected) stop(); else fn(); }, repeat); }, 280);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) el.addEventListener(ev, stop);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); fn(e); } });
+}
+const SETS = { up: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lo: "abcdefghijklmnopqrstuvwxyz", di: "0123456789", sy: "!#$%&*+-=?@^_~.,:;()[]{}<>/" };
+const AMB = /[Il1O0o|`'"]/g;
+const cfg = Object.assign({ len: 16, up: true, lo: true, di: true, sy: true, amb: false, mode: "chars", pinLen: 6 }, store.get("pw", {}));
+
+function pools() {
+  if (cfg.mode === "pin") return ["0123456789"];
+  return Object.keys(SETS).filter(k => cfg[k]).map(k => cfg.amb ? SETS[k].replace(AMB, "") : SETS[k]);
+}
+const len = () => cfg.mode === "pin" ? cfg.pinLen : cfg.len;
+const entropy = () => { const all = pools().join(""); return all ? len() * Math.log2(all.length) : 0; };
+const rating = bits => bits < 40 ? ["schwach", "err"] : bits < 60 ? ["mittel", "mu"] : bits < 80 ? ["stark", "ok"] : ["sehr stark", "ok"];
+function bar(el, bits) {
+  const [label, c] = rating(bits);
+  el.style.width = Math.max(4, Math.min(100, bits)) + "%";
+  el.style.background = c === "err" ? "var(--err)" : c === "ok" ? "var(--ok)" : "var(--accent)";
+  return label;
+}
+const reEsc = s => s.replace(/[\]\\^\-\[]/g, "\\$&");
+function gen() {
+  const p = pools(), all = p.join(""), n = len();
+  if (!all) return "";
+  let out, ok, tries = 0;
+  do {
+    out = ""; for (let i = 0; i < n; i++) out += all[rnd(all.length)];
+    ok = n < p.length || p.every(set => new RegExp("[" + reEsc(set) + "]").test(out));
+  } while (!ok && ++tries < 200);
+  return out;
+}
+function run() {
+  if (!pools().join("")) { $("#pOut").innerHTML = '<p class="err" style="margin:0">Mindestens eine Zeichenart wählen.</p>'; return; }
+  $("#pOut").innerHTML = Array.from({ length: 5 }, gen).map(pw =>
+    `<div class="list-item"><div class="grow pw">${esc(pw)}</div><button class="btn tonal" data-pw="${esc(pw)}">Kopieren</button></div>`).join("");
+}
+function ui() {
+  const bits = entropy(), r = $("#pLen");
+  r.min = 4; r.max = cfg.mode === "pin" ? 12 : 64;
+  r.value = len(); $("#pLenV").textContent = len();
+  $("#pSets").hidden = cfg.mode === "pin";
+  $$("#pSets input").forEach(i => i.checked = !!cfg[i.dataset.k]);
+  $("#pEnt").textContent = `ca. ${Math.round(bits)} Bit Entropie – ${bar($("#pBar"), bits)}${cfg.mode === "pin" ? " (PINs schützen nur mit Fehlversuchssperre)" : ""}`;
+}
+const save = () => { const { len, up, lo, di, sy, amb, mode, pinLen } = cfg; store.set("pw", { len, up, lo, di, sy, amb, mode, pinLen }); };
+$("#pLen").oninput = e => {
+  if (cfg.mode === "pin") cfg.pinLen = +e.target.value; else cfg.len = +e.target.value;
+  save(); ui();
+};
+$("#pLen").onchange = run;
+$("#pSets").onchange = e => { const k = e.target.dataset.k; if (k) { cfg[k] = e.target.checked; save(); ui(); run(); } };
+onPress($("#pGo"), run);
+$("#pCp").onclick = () => { const b = $("#pOut [data-pw]"); if (b) copy(b.dataset.pw); };
+$("#pOut").onclick = e => { const b = e.target.closest("[data-pw]"); if (b) copy(b.dataset.pw); };
+
+function check() {
+  const v = $("#pIn").value, notes = [];
+  let pool = 0;
+  if (/[a-z]/.test(v)) pool += 26; if (/[A-Z]/.test(v)) pool += 26; if (/\d/.test(v)) pool += 10;
+  if (/[^a-zA-Z\d]/.test(v)) pool += 33;
+  let bits = v ? v.length * Math.log2(pool) : 0;
+  if (/(.)\1\1/.test(v)) { bits *= 0.8; notes.push("Wiederholte Zeichen (z. B. „aaa“)"); }
+  if (/0123|1234|2345|3456|4567|5678|6789|abcd|qwert|asdf|passw|hallo|admin/i.test(v)) { bits *= 0.6; notes.push("Bekannte Folge oder häufiges Wort"); }
+  if (v && v.length < 12) notes.push("Kürzer als 12 Zeichen");
+  const r = bar($("#cBar"), bits);
+  $("#cOut").innerHTML = v ? `<b>${r}</b> · ${v.length} Zeichen · ca. ${Math.round(bits)} Bit` + (notes.length ? `<ul class="nope"><li>${notes.join("</li><li>")}</li></ul>` : "") : '<span class="muted">Passwort eingeben</span>';
+}
+$("#pIn").oninput = check;
+$("#pShow").onclick = e => { const i = $("#pIn"); i.type = i.type === "password" ? "text" : "password"; e.currentTarget.textContent = i.type === "password" ? "Zeigen" : "Verbergen"; };
+
+function setMode(m) {
+  cfg.mode = m; if (m !== "check") save();
+  $("#pGen").hidden = m === "check"; $("#pChk").hidden = m !== "check";
+  $$("#pMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+  if (m !== "check") { ui(); run(); } else check();
+}
+$("#pMode").onclick = e => { const b = e.target.closest("button"); if (b) setMode(b.dataset.m); };
+setMode(cfg.mode === "pin" ? "pin" : "chars");
+})();
+</script>
+</body>
+</html>

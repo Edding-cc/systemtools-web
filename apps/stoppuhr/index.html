@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stoppuhr · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Stoppuhr</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="card"><div class="timebig" id="swT">00:00,00</div><div class="center muted" id="swLap">&nbsp;</div></div>
+<div class="ctl"><button id="swReset" class="tonal">Löschen</button><button id="swGo" class="ac">Start</button><button id="swLapBtn" class="tonal">Runde</button></div>
+<div class="card" id="swList"></div>
+<button class="btn text" id="swCopy">Runden kopieren</button>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Stoppuhr
+   ========================================================= */
+const pad = (n, len = 2) => String(n).padStart(len, "0");
+/* ms -> "1:02:03" bzw. "02:03", mit tenths ",4" */
+function fmtDur(ms, tenths) {
+  if (ms < 0) ms = 0;
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+  const out = (h ? h + ":" + pad(m) : pad(m)) + ":" + pad(s % 60);
+  return tenths ? out + "," + Math.floor(ms % 1000 / 100) : out;
+}
+/* Löst sofort beim Antippen aus (Pointer Events); mit repeat (ms) wiederholt beim Halten.
+   Tastatur: Enter/Leertaste. */
+function onPress(el, fn, repeat) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0 || el.disabled) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn(e);
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(() => { if (el.disabled || !el.isConnected) stop(); else fn(); }, repeat); }, 280);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) el.addEventListener(ev, stop);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); fn(e); } });
+}
+/* Zeit läuft über Zeitstempel weiter, auch wenn die Seite im Hintergrund oder geschlossen war */
+let s = Object.assign({ run: false, start: 0, acc: 0, laps: [] }, store.get("sw", {})), iv = 0;
+const now = () => s.acc + (s.run ? Date.now() - s.start : 0);
+const fmt = ms => fmtDur(ms, true) + Math.floor(ms % 100 / 10);
+const save = () => store.set("sw", s);
+function tick() {
+  const t = now(), last = s.laps.length ? s.laps[s.laps.length - 1] : 0;
+  $("#swT").textContent = fmt(t);
+  $("#swLap").textContent = s.laps.length ? `Runde ${s.laps.length + 1}: ${fmt(t - last)}` : " ";
+}
+function ui() {
+  $("#swGo").textContent = s.run ? "Stopp" : now() ? "Weiter" : "Start";
+  $("#swLapBtn").disabled = !s.run;
+  clearInterval(iv); if (s.run) iv = setInterval(tick, 47);
+  tick(); laps();
+}
+function laps() {
+  const d = s.laps.map((v, i) => v - (i ? s.laps[i - 1] : 0));
+  const mn = Math.min(...d), mx = Math.max(...d);
+  let h = "";
+  for (let i = s.laps.length - 1; i >= 0; i--) {
+    const cls = s.laps.length > 2 ? (d[i] === mn ? " ok" : d[i] === mx ? " err" : "") : "";
+    h += `<tr><td>Runde ${i + 1}</td><td class="mono${cls}">${fmt(d[i])}</td><td class="mono muted" style="text-align:right">${fmt(s.laps[i])}</td></tr>`;
+  }
+  $("#swList").innerHTML = h ? `<table class="tbl"><tr><th>Runde</th><th>Zeit</th><th style="text-align:right">Gesamt</th></tr>${h}</table>` : '<p class="muted" style="margin:0">Noch keine Runden.</p>';
+}
+onPress($("#swGo"), () => {
+  if (s.run) { s.acc = now(); s.run = false; } else { s.start = Date.now(); s.run = true; }
+  save(); ui();
+});
+onPress($("#swLapBtn"), () => { if (s.run) { s.laps.push(now()); save(); laps(); } });
+$("#swReset").onclick = () => { s = { run: false, start: 0, acc: 0, laps: [] }; save(); ui(); };
+$("#swCopy").onclick = () => {
+  if (!s.laps.length) { toast("Keine Runden"); return; }
+  copy(s.laps.map((v, i) => `Runde ${i + 1}\t${fmt(v - (i ? s.laps[i - 1] : 0))}\t${fmt(v)}`).join("\n"));
+};
+onLeave(() => clearInterval(iv));
+ui();
+})();
+</script>
+</body>
+</html>

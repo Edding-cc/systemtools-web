@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Subnetzrechner · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+.bin{font-family:var(--mono);font-size:13px;word-break:break-all;line-height:1.6}
+.bin .n{font-weight:700;color:var(--text)}
+.bin .h{color:var(--muted)}
+#snList{max-height:360px;overflow:auto}
+#snList td.mono,#snTbl td.mono{font-size:13px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Subnetzrechner</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="card">
+  <label class="fld" for="snIp">IPv4-Adresse (auch mit /Präfix)</label><input type="text" id="snIp" class="mono" placeholder="192.168.1.10/24" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <label class="fld" for="snMask">Netzmaske oder Präfix</label><input type="text" id="snMask" class="mono" placeholder="255.255.255.0 oder 24" autocomplete="off" spellcheck="false">
+  <label class="fld" for="snPre">Präfix: /<b id="snPreV">24</b></label><input type="range" id="snPre" min="0" max="32" value="24">
+</div>
+<div class="card"><div id="snOut"></div><div class="bin mt" id="snBin"></div><button class="btn tonal mt" id="snCopy">Ergebnis kopieren</button></div>
+<div class="card">
+  <h3>In Subnetze aufteilen</h3>
+  <label class="fld" for="snSplit">Neues Präfix</label><select id="snSplit"></select>
+  <div id="snList" class="mt"></div>
+</div>
+<div class="card"><h3>Präfix-Tabelle</h3><button class="btn tonal" id="snTblBtn">Anzeigen</button><div id="snTbl" class="mt" hidden></div></div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Subnetzrechner
+   ========================================================= */
+const ipToInt = s => {
+  const p = String(s).trim().split(".");
+  if (p.length !== 4) return null;
+  let n = 0;
+  for (const o of p) { if (!/^\d{1,3}$/.test(o) || +o > 255) return null; n = n * 256 + +o; }
+  return n;
+};
+const intToIp = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join(".");
+const maskOf = p => p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0;
+const prefixOfMask = m => { const n = ipToInt(m); if (n == null) return -1; for (let p = 0; p <= 32; p++) if (maskOf(p) === n) return p; return -1; };
+const bin = n => (n >>> 0).toString(2).padStart(32, "0");
+const count = p => 2 ** (32 - p);
+function kind(ip) {
+  const inNet = (net, p) => ((ip & maskOf(p)) >>> 0) === ipToInt(net);
+  if (inNet("10.0.0.0", 8) || inNet("172.16.0.0", 12) || inNet("192.168.0.0", 16)) return "privat (RFC 1918)";
+  if (inNet("127.0.0.0", 8)) return "Loopback";
+  if (inNet("169.254.0.0", 16)) return "Link-Local (APIPA)";
+  if (inNet("100.64.0.0", 10)) return "Carrier-Grade NAT (RFC 6598)";
+  if (inNet("192.0.2.0", 24) || inNet("198.51.100.0", 24) || inNet("203.0.113.0", 24)) return "Dokumentation (RFC 5737)";
+  if (inNet("224.0.0.0", 4)) return "Multicast";
+  if (ip === 0xFFFFFFFF) return "Broadcast";
+  if (inNet("240.0.0.0", 4)) return "reserviert";
+  if (inNet("0.0.0.0", 8)) return "„dieses Netz“ (0.0.0.0/8)";
+  return "öffentlich";
+}
+const cls = ip => { const o = ip >>> 24; return o < 128 ? "A" : o < 192 ? "B" : o < 224 ? "C" : o < 240 ? "D (Multicast)" : "E"; };
+const ipIn = $("#snIp"), maskIn = $("#snMask"), pre = $("#snPre"), out = $("#snOut"), splitSel = $("#snSplit");
+let cur = null;
+
+function read(src) {
+  const raw = ipIn.value;
+  let ipStr = raw, p = +pre.value, m;
+  if (raw.includes("/")) {
+    [ipStr, m] = raw.split("/");
+    if (/^\d{1,2}$/.test(m) && +m <= 32) p = +m;
+  }
+  if (src === "mask") {
+    m = maskIn.value.replace(/^[\s/]+|\s+$/g, "");
+    if (/^\d{1,2}$/.test(m) && +m <= 32) p = +m;
+    else if (prefixOfMask(m) >= 0) p = prefixOfMask(m);
+    else if (m) { out.innerHTML = '<p class="err" style="margin:0">Ungültige Netzmaske</p>'; return; }
+    if (raw.includes("/")) ipIn.value = ipStr + "/" + p;
+  }
+  if (src === "range" && raw.includes("/")) ipIn.value = ipStr + "/" + p;
+  if (src !== "mask") maskIn.value = intToIp(maskOf(p));
+  pre.value = p; $("#snPreV").textContent = p;
+  const ip = ipToInt(ipStr);
+  store.set("subnet", { ip: ipIn.value, p });
+  if (ip == null) {
+    cur = null;
+    out.innerHTML = '<p class="muted" style="margin:0">Gültige IPv4-Adresse eingeben, z. B. 10.0.5.20/22</p>';
+    $("#snBin").innerHTML = ""; $("#snList").innerHTML = ""; return;
+  }
+  calc(ip, p);
+}
+function calc(ip, p) {
+  const mask = maskOf(p), net = (ip & mask) >>> 0, bc = (net | (~mask >>> 0)) >>> 0, total = count(p);
+  let first, last, hosts;
+  if (p === 32) { first = last = net; hosts = 1; }
+  else if (p === 31) { first = net; last = bc; hosts = 2; }
+  else { first = net + 1; last = bc - 1; hosts = total - 2; }
+  cur = { ip, p, net, bc };
+  out.innerHTML = kv({
+    "Adresse": intToIp(ip), "Netzmaske": `${intToIp(mask)} (/${p})`, "Wildcard": intToIp(~mask >>> 0),
+    "Netzadresse": `${intToIp(net)}/${p}`, "Broadcast": p >= 31 ? "– (keine)" : intToIp(bc),
+    "Erster Host": intToIp(first), "Letzter Host": intToIp(last),
+    "Nutzbare Hosts": nf(hosts, 0) + (p === 31 ? " (Punkt-zu-Punkt, RFC 3021)" : ""), "Adressen gesamt": nf(total, 0),
+    "Klasse (historisch)": cls(ip), "Adresstyp": kind(ip), "Hex": "0x" + ip.toString(16).toUpperCase().padStart(8, "0")
+  });
+  const grp = s => [...s].map((c, i) => (i < p ? `<span class="n">${c}</span>` : `<span class="h">${c}</span>`) + (i % 8 === 7 && i < 31 ? "." : "")).join("");
+  $("#snBin").innerHTML = `<span class="muted">Adresse</span><br>${grp(bin(ip))}<br><span class="muted">Maske</span><br>${grp(bin(mask))}<br><span class="muted">Fett = Netzanteil, normal = Hostanteil</span>`;
+  let sh = "";
+  for (let i = p; i <= Math.min(32, p + 16); i++) sh += `<option value="${i}">/${i} – ${nf(2 ** (i - p), 0)} Netze à ${nf(count(i), 0)} Adressen</option>`;
+  const keep = +splitSel.value; splitSel.innerHTML = sh;
+  splitSel.value = keep > p && keep <= p + 16 ? keep : Math.min(32, p + 1);
+  split();
+}
+function split() {
+  if (!cur) return;
+  const np = +splitSel.value, n = 2 ** (np - cur.p), size = count(np), max = Math.min(n, 256);
+  let h = "";
+  for (let i = 0; i < max; i++) {
+    const s = cur.net + i * size;
+    h += `<tr><td>${i + 1}</td><td class="mono">${intToIp(s)}/${np}</td><td class="mono muted">${np >= 31 ? intToIp(s) + " – " + intToIp(s + size - 1) : intToIp(s + 1) + " – " + intToIp(s + size - 2)}</td></tr>`;
+  }
+  $("#snList").innerHTML = `<table class="tbl"><tr><th>#</th><th>Netz</th><th>Hosts</th></tr>${h}</table>` + (n > max ? `<p class="muted" style="font-size:13px">… nur die ersten 256 von ${nf(n, 0)} Netzen angezeigt.</p>` : "");
+}
+ipIn.oninput = () => read("ip");
+maskIn.onchange = () => read("mask");
+maskIn.onkeydown = e => { if (e.key === "Enter") read("mask"); };
+pre.oninput = () => read("range");
+splitSel.onchange = split;
+$("#snCopy").onclick = () => {
+  if (!cur) return;
+  const t = $$("#snOut dt"), d = $$("#snOut dd");
+  copy(t.map((x, i) => x.textContent + ": " + d[i].textContent).join("\n"));
+};
+$("#snTblBtn").onclick = e => {
+  const el = $("#snTbl");
+  if (!el.innerHTML) {
+    let h = "";
+    for (let p = 32; p >= 0; p--) h += `<tr><td class="mono">/${p}</td><td class="mono">${intToIp(maskOf(p))}</td><td style="text-align:right">${nf(p >= 31 ? (p === 32 ? 1 : 2) : count(p) - 2, 0)}</td></tr>`;
+    el.innerHTML = `<table class="tbl"><tr><th>Präfix</th><th>Maske</th><th style="text-align:right">Hosts</th></tr>${h}</table>`;
+  }
+  el.hidden = !el.hidden; e.currentTarget.textContent = el.hidden ? "Anzeigen" : "Ausblenden";
+};
+const sv = store.get("subnet", { ip: "192.168.1.10/24", p: 24 });
+ipIn.value = sv.ip; pre.value = sv.p;
+read("ip");
+})();
+</script>
+</body>
+</html>

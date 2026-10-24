@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Datum &amp; Fristen · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+.dt{display:flex;gap:8px}
+.dt input{flex:1;min-width:0;font-family:var(--mono)}
+.dt .btn{flex:none}
+#dMode{max-width:100%;overflow-x:auto}
+#dMode button{padding:8px 14px}
+.result .big{font-size:26px;margin-bottom:8px}
+.result .kv{margin:0}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Datum &amp; Fristen</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="dMode" role="group" style="margin-bottom:12px"><button data-m="diff">Abstand</button><button data-m="add">Rechnen</button><button data-m="info">Info</button><button data-m="frist">Fristen</button></div>
+<div id="pdiff" class="card">
+<label class="fld" for="d1">Von (TT.MM.JJJJ)</label><div class="dt"><input type="tel" id="d1" autocomplete="off"><button class="btn tonal" data-today="d1">Heute</button></div>
+<label class="fld" for="d2">Bis (TT.MM.JJJJ)</label><div class="dt"><input type="tel" id="d2" autocomplete="off"><button class="btn tonal" data-today="d2">Heute</button></div>
+<div class="result" id="rDiff"></div>
+</div>
+<div id="padd" class="card" hidden>
+<label class="fld" for="a1">Ausgangsdatum</label><div class="dt"><input type="tel" id="a1" autocomplete="off"><button class="btn tonal" data-today="a1">Heute</button></div>
+<div class="grid2"><div><label class="fld" for="aN">Anzahl (− für zurück)</label><input type="number" id="aN" value="14"></div><div><label class="fld" for="aU">Einheit</label><select id="aU"><option value="d">Tage</option><option value="w">Wochen</option><option value="m">Monate</option><option value="y">Jahre</option><option value="wd">Werktage (Mo–Fr)</option></select></div></div>
+<div class="result" id="rAdd"></div>
+</div>
+<div id="pinfo" class="card" hidden>
+<label class="fld" for="i1">Datum</label><div class="dt"><input type="tel" id="i1" autocomplete="off"><button class="btn tonal" data-today="i1">Heute</button></div>
+<div class="result" id="rInfo"></div>
+</div>
+<div id="pfrist" hidden>
+<div class="card">
+<label class="fld" for="f1">Ereignis / Eingang (TT.MM.JJJJ)</label><div class="dt"><input type="tel" id="f1" autocomplete="off"><button class="btn tonal" data-today="f1">Jetzt</button></div>
+<label class="fld" for="fT">Uhrzeit (HH:MM)</label><input type="tel" id="fT" class="mono" autocomplete="off">
+<div class="result" id="rFrist"></div>
+</div>
+<p class="hint">Vereinfachte Berechnung nach Kalendertagen ohne Feiertage und ohne besondere Fristregeln (z. B. Fristende am Wochenende). Keine Rechtsberatung – maßgeblich ist der Gesetzestext.</p>
+</div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Datum & Fristen
+   ========================================================= */
+const pad = (n, len = 2) => String(n).padStart(len, "0");
+/* "1.234,5" oder "1234.5" -> Zahl, sonst NaN */
+function parseNum(v) {
+  v = String(v ?? "").replace(/[\s ']/g, "");
+  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  return /^[+\-]?(\d+\.?\d*|\.\d+)(e[+\-]?\d+)?$/i.test(v) ? parseFloat(v) : NaN;
+}
+const WD = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const MO = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const DAY = 86400000;
+const v = store.get("datum", {});
+let mode = v.mode || "diff";
+
+const today = () => { const d = new Date(); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; };
+const nowTime = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+function parse(s) {
+  const m = /^\s*(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{2}|\d{4})\s*$/.exec(s || "");
+  if (!m) return null;
+  let y = +m[3]; if (y < 100) y += 2000;
+  const d = new Date(y, +m[2] - 1, +m[1], 12);
+  d.setFullYear(y); // Jahre < 100 nicht als 19xx deuten
+  return d.getDate() === +m[1] && d.getMonth() === +m[2] - 1 ? d : null;
+}
+const fmt = d => `${WD[d.getDay()].slice(0, 2)}, ${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+const fmtLong = d => `${WD[d.getDay()]}, ${d.getDate()}. ${MO[d.getMonth()]} ${d.getFullYear()}`;
+const days = (a, b) => Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / DAY);
+function addMonths(d, n) {
+  let y = d.getFullYear(), m = d.getMonth() + n;
+  y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+  const last = new Date(y, m + 1, 0).getDate();
+  return new Date(y, m, Math.min(d.getDate(), last), d.getHours(), d.getMinutes());
+}
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), dn = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dn);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return [Math.ceil(((t - y0) / DAY + 1) / 7), t.getUTCFullYear()];
+}
+function workdays(a, b) {
+  const s = a <= b ? a : b, e = a <= b ? b : a, d = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 12);
+  let n = 0;
+  while (d <= e) { if (d.getDay() % 6) n++; d.setDate(d.getDate() + 1); if (n > 400000) break; }
+  return n;
+}
+function ymd(a, b) {
+  if (a > b) [a, b] = [b, a];
+  let y = b.getFullYear() - a.getFullYear(), m = b.getMonth() - a.getMonth(), d = b.getDate() - a.getDate();
+  if (d < 0) { m--; d += new Date(b.getFullYear(), b.getMonth(), 0).getDate(); }
+  if (m < 0) { y--; m += 12; }
+  return `${y} J, ${m} M, ${d} T`;
+}
+const err = (id, msg) => { $(id).innerHTML = `<span class="muted">${msg}</span>`; };
+const kvp = pairs => kv(Object.fromEntries(pairs));
+
+function calcDiff() {
+  const a = parse($("#d1").value), b = parse($("#d2").value);
+  if (!a || !b) return err("#rDiff", "Zwei gültige Daten eingeben, z. B. 24.12.2026");
+  const n = days(a, b), an = Math.abs(n);
+  $("#rDiff").innerHTML = `<div class="big" style="font-size:30px">${nf(n, 0)} Tage</div>` +
+    kvp([["Wochen", `${Math.floor(an / 7)} W ${an % 7} T`], ["Jahre/Monate/Tage", ymd(a, b)], ["Werktage Mo–Fr (inkl. beider)", nf(workdays(a, b), 0)], ["Inklusive Endtag", nf(an + 1, 0) + " Tage"], ["Stunden", nf(an * 24, 0)]]);
+}
+function calcAdd() {
+  const a = parse($("#a1").value), n = Math.round(parseNum($("#aN").value)), u = $("#aU").value;
+  let r;
+  if (!a || isNaN(n)) return err("#rAdd", "Datum und Anzahl eingeben");
+  if (Math.abs(n) > 100000) return err("#rAdd", "Anzahl zu groß");
+  if (u === "d") { r = new Date(a); r.setDate(r.getDate() + n); }
+  else if (u === "w") { r = new Date(a); r.setDate(r.getDate() + n * 7); }
+  else if (u === "m") r = addMonths(a, n);
+  else if (u === "y") r = addMonths(a, n * 12);
+  else { r = new Date(a); const step = n < 0 ? -1 : 1; for (let i = 0; i < Math.abs(n);) { r.setDate(r.getDate() + step); if (r.getDay() % 6) i++; } }
+  $("#rAdd").innerHTML = `<div class="big">${fmtLong(r)}</div>` + kvp([["Kalenderwoche", "KW " + isoWeek(r)[0]], ["Abstand", nf(days(a, r), 0) + " Tage"]]);
+}
+function calcInfo() {
+  const d = parse($("#i1").value);
+  if (!d) return err("#rInfo", "Gültiges Datum eingeben");
+  const y = d.getFullYear(), leap = new Date(y, 1, 29).getMonth() === 1, w = isoWeek(d), doy = days(new Date(y, 0, 1, 12), d) + 1, len = leap ? 366 : 365;
+  $("#rInfo").innerHTML = `<div class="big">${fmtLong(d)}</div>` + kvp([
+    ["Kalenderwoche (ISO)", "KW " + w[0] + (w[1] !== y ? ` (${w[1]})` : "")], ["Tag im Jahr", `${doy} von ${len}`], ["Verbleibende Tage", len - doy],
+    ["Quartal", "Q" + (Math.floor(d.getMonth() / 3) + 1)], ["Schaltjahr", leap ? "ja" : "nein"], ["Tage bis heute", nf(days(d, new Date()), 0)]]);
+}
+function calcFrist() {
+  const d = parse($("#f1").value), tm = /^\s*(\d{1,2})[:.](\d{2})\s*$/.exec($("#fT").value || "");
+  if (!d) return err("#rFrist", "Datum eingeben");
+  if (tm && +tm[1] < 24 && +tm[2] < 60) d.setHours(+tm[1], +tm[2], 0, 0); else d.setHours(0, 0, 0, 0);
+  const h72 = new Date(d.getTime() + 72 * 3600000), m1 = addMonths(d, 1), m3 = addMonths(d, 3), w2 = new Date(d); w2.setDate(w2.getDate() + 14);
+  const dt = x => fmt(x) + (tm ? `, ${pad(x.getHours())}:${pad(x.getMinutes())} Uhr` : "");
+  $("#rFrist").innerHTML = kvp([
+    ["+ 72 Stunden", dt(h72)],
+    ["+ 1 Monat", fmt(m1)],
+    ["+ 3 Monate (1 + 2 Verlängerung)", fmt(m3)],
+    ["+ 14 Tage", fmt(w2)]
+  ]) + '<p class="muted" style="font-size:13px;margin:8px 0 0">Beispiele DSGVO: Meldung einer Datenschutzverletzung möglichst binnen 72 Stunden nach Bekanntwerden (Art. 33 Abs. 1); Antwort auf Betroffenenanträge innerhalb eines Monats, verlängerbar um weitere zwei Monate (Art. 12 Abs. 3).</p>';
+}
+const CALC = { diff: calcDiff, add: calcAdd, info: calcInfo, frist: calcFrist };
+const FIELDS = ["d1", "d2", "a1", "aN", "aU", "i1", "f1", "fT"];
+function persist() { const o = { mode }; FIELDS.forEach(f => o[f] = $("#" + f).value); store.set("datum", o); }
+function setMode(m) {
+  mode = CALC[m] ? m : "diff";
+  for (const k in CALC) $("#p" + k).hidden = k !== mode;
+  $$("#dMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === mode));
+  CALC[mode](); persist();
+}
+const update = () => { CALC[mode](); persist(); };
+FIELDS.forEach(f => {
+  const el = $("#" + f);
+  if (v[f] != null) el.value = v[f];
+  else if (el.tagName === "INPUT" && f !== "aN" && f !== "fT") el.value = today();
+  el.addEventListener("input", update); el.addEventListener("change", update);
+});
+if (!$("#fT").value) $("#fT").value = nowTime();
+$("#app").addEventListener("click", e => {
+  const b = e.target.closest("[data-today]"); if (!b) return;
+  const id = b.dataset.today; $("#" + id).value = today();
+  if (id === "f1") $("#fT").value = nowTime();
+  update();
+});
+$("#dMode").onclick = e => { const b = e.target.closest("button"); if (b) setMode(b.dataset.m); };
+setMode(mode);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Textwerkzeuge · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+#xIn,#xOut{min-height:140px;font-family:var(--mono);font-size:14px;resize:vertical}
+#xOut{background:var(--surface-2)}
+.tb h3.mt{margin-top:16px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Textwerkzeuge</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="card">
+<textarea id="xIn" placeholder="Text hier eingeben oder einfügen …" aria-label="Eingabe" spellcheck="false"></textarea>
+<div class="stats mt" id="xStats" style="margin-bottom:0"></div>
+</div>
+<div class="card tb" id="xTools">
+<h3>Umwandeln</h3>
+<div class="chips"><button data-f="upper">GROSS</button><button data-f="lower">klein</button><button data-f="title">Wörter Groß</button><button data-f="trim">Leerzeichen bereinigen</button><button data-f="sort">Zeilen sortieren</button><button data-f="uniq">Doppelte Zeilen entfernen</button><button data-f="rev">Umkehren</button></div>
+<h3 class="mt">Kodieren</h3>
+<div class="chips"><button data-f="b64e">Base64 kodieren</button><button data-f="b64d">Base64 dekodieren</button><button data-f="urle">URL kodieren</button><button data-f="urld">URL dekodieren</button><button data-f="html">HTML maskieren</button><button data-f="sha">SHA-256</button></div>
+</div>
+<div class="card">
+<h3 id="xOutL">Ergebnis</h3>
+<textarea id="xOut" readonly aria-labelledby="xOutL"></textarea>
+<div class="row mt"><button class="btn" id="xCopy">Kopieren</button><button class="btn tonal" id="xUse">Als Eingabe übernehmen</button></div>
+</div>
+<p class="muted" style="font-size:13px">Alles wird lokal auf dem Gerät berechnet. Der SHA-256-Wert bezieht sich auf den Text in UTF-8.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Textwerkzeuge
+   ========================================================= */
+
+const enc = new TextEncoder();
+const bytesToBin = b => { let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return s; };
+async function sha256(s) {
+  if (!crypto.subtle) throw new Error("subtle");
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s)));
+  return [...h].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+const F = {
+  upper: s => s.toUpperCase(),
+  lower: s => s.toLowerCase(),
+  title: s => s.toLowerCase().replace(/(^|[\s\-("„])([a-zäöüß])/g, (m, p, c) => p + c.toUpperCase()),
+  trim: s => s.replace(/[ \t]+/g, " ").replace(/^ +| +$/gm, "").replace(/\n{3,}/g, "\n\n").trim(),
+  sort: s => s.split(/\r?\n/).sort((a, b) => a.localeCompare(b, "de")).join("\n"),
+  uniq: s => [...new Set(s.split(/\r?\n/))].join("\n"),
+  rev: s => [...s].reverse().join(""),
+  b64e: s => btoa(bytesToBin(enc.encode(s))),
+  b64d: s => new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(atob(s.replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0))),
+  urle: s => encodeURIComponent(s),
+  urld: s => decodeURIComponent(s.replace(/\+/g, " ")),
+  html: s => esc(s),
+  sha: sha256
+};
+const NAMES = { upper: "GROSS", lower: "klein", title: "Wörter groß", trim: "Bereinigt", sort: "Sortiert", uniq: "Ohne Duplikate", rev: "Umgekehrt", b64e: "Base64", b64d: "Base64 dekodiert", urle: "URL-kodiert", urld: "URL-dekodiert", html: "HTML-maskiert", sha: "SHA-256" };
+function stats() {
+  const s = $("#xIn").value, t = s.trim();
+  store.set("text.in", s.length < 20000 ? s : "");
+  const st = [[s.length, "Zeichen"], [s.replace(/\s/g, "").length, "ohne Leerz."], [t ? t.split(/\s+/).length : 0, "Wörter"], [s ? s.split(/\n/).length : 0, "Zeilen"], [enc.encode(s).length, "Bytes"]];
+  $("#xStats").innerHTML = st.map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join("");
+}
+$("#xIn").value = store.get("text.in", "");
+$("#xIn").oninput = stats;
+$("#xTools").onclick = async e => {
+  const b = e.target.closest("[data-f]"); if (!b) return;
+  const f = b.dataset.f;
+  try { $("#xOut").value = await F[f]($("#xIn").value); $("#xOutL").textContent = "Ergebnis: " + NAMES[f]; }
+  catch (err) {
+    $("#xOut").value = ""; $("#xOutL").textContent = "Ergebnis";
+    toast(f === "b64d" ? "Kein gültiges Base64" : f === "sha" ? "SHA-256 braucht eine sichere Verbindung (HTTPS)" : "Kein gültiger Text für diese Umwandlung");
+  }
+};
+$("#xCopy").onclick = () => { if ($("#xOut").value) copy($("#xOut").value); };
+$("#xUse").onclick = () => { if ($("#xOut").value) { $("#xIn").value = $("#xOut").value; stats(); } };
+stats();
+})();
+</script>
+</body>
+</html>

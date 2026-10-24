@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notizen · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+#nBody{min-height:260px;resize:vertical;line-height:1.5}
+.nprev{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nList .list-item{cursor:pointer}
+#nList .list-item:hover b{color:var(--accent)}
+:root[data-dark="1"] #nList .list-item:hover b{color:color-mix(in srgb,var(--accent) 45%,#fff)}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Notizen</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div id="vList">
+<div class="flex" style="margin-bottom:12px"><input class="search grow" id="nq" type="search" placeholder="Notizen durchsuchen …" aria-label="Notizen durchsuchen" style="margin:0"><button class="btn" id="nAdd">Neu</button></div>
+<div class="card" id="nList"></div>
+<p class="muted" style="font-size:14px">Notizen werden nur lokal in diesem Browser gespeichert.</p>
+</div>
+<div id="vEdit" hidden>
+<div class="card">
+<input type="text" id="nTitle" placeholder="Titel" aria-label="Titel" style="font-weight:600;margin-bottom:8px">
+<textarea id="nBody" placeholder="Notiz …" aria-label="Notiz"></textarea>
+<p class="muted" id="nInfo" style="font-size:13px;margin:8px 0 12px"></p>
+<div class="row"><button class="btn" id="nDone">Fertig</button><button class="btn tonal" id="nPin">Anheften</button><button class="btn tonal" id="nCopy">Kopieren</button><button class="btn danger" id="nDel">Löschen</button></div>
+</div>
+</div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Notizen
+   ========================================================= */
+const pad = (n, len = 2) => String(n).padStart(len, "0");
+/* gleichverteilte Ganzzahl 0 … n-1 aus crypto.getRandomValues (ohne Modulo-Verzerrung) */
+const rndBuf = new Uint32Array(1);
+function rnd(n) {
+  const lim = 4294967296 - (4294967296 % n);
+  let x;
+  do { crypto.getRandomValues(rndBuf); x = rndBuf[0]; } while (x >= lim);
+  return x % n;
+}
+let notes = store.get("notes", []), cur = null, saveT = 0;
+const sortNotes = () => notes.sort((a, b) => (b.p ? 1 : 0) - (a.p ? 1 : 0) || b.u - a.u);
+function when(ts) {
+  const d = new Date(ts), now = new Date();
+  if (d.toDateString() === now.toDateString()) return `heute ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+const firstLine = s => (s || "").split("\n")[0].slice(0, 60);
+const persist = () => store.set("notes", notes);
+function list() {
+  sortNotes();
+  const q = $("#nq").value.trim().toLowerCase();
+  const shown = notes.filter(n => !q || (n.t + " " + n.b).toLowerCase().includes(q));
+  $("#nList").innerHTML = shown.length ? shown.map(n =>
+    `<div class="list-item" data-id="${esc(n.id)}" tabindex="0" role="button"><div class="grow"><b>${n.p ? '<span class="badge">angeheftet</span> ' : ""}${esc(n.t || firstLine(n.b) || "Ohne Titel")}</b>` +
+    `<span class="nprev muted">${esc(n.b.replace(/\s+/g, " ").slice(0, 120) || "–")}</span><small>${when(n.u)}</small></div></div>`).join("")
+    : `<p class="muted" style="margin:0">${notes.length ? "Nichts gefunden." : "Noch keine Notizen. Tippe auf „Neu“."}</p>`;
+}
+function open(n) {
+  cur = n; $("#vList").hidden = true; $("#vEdit").hidden = false;
+  $("#nTitle").value = n.t; $("#nBody").value = n.b; info();
+  $("#nPin").textContent = n.p ? "Lösen" : "Anheften";
+  scrollTo(0, 0);
+}
+function info() {
+  const b = $("#nBody").value, t = b.trim(), w = t ? t.split(/\s+/).length : 0;
+  $("#nInfo").textContent = `${b.length} Zeichen · ${w} Wörter · geändert ${when(cur.u)}`;
+}
+function edit() {
+  cur.t = $("#nTitle").value; cur.b = $("#nBody").value; cur.u = Date.now();
+  clearTimeout(saveT); saveT = setTimeout(persist, 400); info();
+}
+function back() { cur = null; $("#vEdit").hidden = true; $("#vList").hidden = false; list(); }
+function close() {
+  clearTimeout(saveT);
+  if (cur && !cur.t.trim() && !cur.b.trim()) notes.splice(notes.indexOf(cur), 1);
+  persist(); back();
+}
+$("#nAdd").onclick = () => { const n = { id: String(Date.now()) + rnd(1000), t: "", b: "", u: Date.now(), p: false }; notes.unshift(n); open(n); $("#nBody").focus(); };
+const openFrom = e => { const it = e.target.closest("[data-id]"); if (it) open(notes.find(n => n.id === it.dataset.id)); };
+$("#nList").onclick = openFrom;
+$("#nList").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFrom(e); } };
+$("#nq").oninput = list;
+$("#nTitle").oninput = edit; $("#nBody").oninput = edit;
+$("#nDone").onclick = close;
+$("#nPin").onclick = e => { cur.p = !cur.p; e.currentTarget.textContent = cur.p ? "Lösen" : "Anheften"; persist(); };
+$("#nCopy").onclick = () => copy((cur.t ? cur.t + "\n\n" : "") + cur.b);
+$("#nDel").onclick = () => {
+  if (!confirm("Diese Notiz löschen?")) return;
+  clearTimeout(saveT); notes.splice(notes.indexOf(cur), 1); persist(); back();
+};
+onLeave(() => { if (cur) { clearTimeout(saveT); persist(); } });
+list();
+})();
+</script>
+</body>
+</html>

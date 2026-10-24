@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tetris · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.ctl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button.down:not(.ac){background:var(--accent-soft)}
+#tWrap{display:flex;justify-content:center;align-items:flex-start;gap:12px;margin-bottom:10px}
+#tc{display:block;border-radius:8px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+#tSide{width:92px;flex:none;font-size:13px}
+#tSide span{display:block;color:var(--muted)}
+#tSide b{display:block;font-size:20px;line-height:1.2;margin-bottom:6px;font-variant-numeric:tabular-nums}
+#tn{display:block;border-radius:8px;margin-bottom:8px;width:92px;height:60px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Tetris</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div id="tWrap"><canvas id="tc" aria-label="Spielfeld"></canvas>
+    <div id="tSide"><span>Nächster</span><canvas id="tn"></canvas>
+      <span>Punkte</span><b id="tScore">0</b><span>Reihen</span><b id="tLines">0</b><span>Level</span><b id="tLevel">1</b><span>Rekord</span><b id="tBest">0</b></div></div>
+  <div class="ctl" id="tPad"><button data-a="left" aria-label="Links">←</button><button data-a="right" aria-label="Rechts">→</button><button data-a="down" aria-label="Schneller">↓</button><button data-a="rot" class="tonal" aria-label="Drehen">↻</button></div>
+  <div class="ctl c2"><button id="tStart" class="ac">Start</button><button data-a="drop" id="tDrop" class="tonal">Fallen lassen</button></div>
+  <p class="muted" style="font-size:14px">Halte ← → ↓ gedrückt für schnelle Bewegung. Antippen des Spielfelds dreht ebenfalls. Tastatur: Pfeile (↑ dreht), Leertaste lässt fallen, P pausiert.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Tetris
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const isTyping = e => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+/* Löst sofort beim Antippen aus; mit repeat (ms) wiederholt beim Halten */
+function onPress(el, fn, repeat = 0) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn();
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(fn, repeat); }, 280);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(ev => el.addEventListener(ev, stop));
+  el.addEventListener("click", e => { if (e.detail === 0) fn(); });
+  onLeave(stop);
+}
+const probe = document.createElement("i"); probe.style.display = "none"; document.body.appendChild(probe);
+const css = v => { probe.style.color = v; return getComputedStyle(probe).color; };
+
+const W = 10, H = 20;
+const SHAPES = {
+  I: [[0, 1], [1, 1], [2, 1], [3, 1]], O: [[1, 0], [2, 0], [1, 1], [2, 1]], T: [[1, 0], [0, 1], [1, 1], [2, 1]],
+  S: [[1, 0], [2, 0], [0, 1], [1, 1]], Z: [[0, 0], [1, 0], [1, 1], [2, 1]], J: [[0, 0], [0, 1], [1, 1], [2, 1]], L: [[2, 0], [0, 1], [1, 1], [2, 1]]
+};
+const COL = { I: "#29b6d6", O: "#e8c22a", T: "#9c5bd1", S: "#43b047", Z: "#e0483e", J: "#3a6fe0", L: "#ee8a22" };
+const cv = $("#tc"), ctx = cv.getContext("2d"), nv = $("#tn"), nctx = nv.getContext("2d");
+let cs = 16, grid, cur, next, bag = [], score = 0, lines = 0, level = 1, running = false, over = true, timer = 0, best = store.get("tetris.best", 0), T = {};
+onLeave(() => clearTimeout(timer));
+
+const isDark = () => document.documentElement.dataset.dark === "1";
+function theme() { T = { sf2: css("var(--surface-2)"), bd: css("var(--border)"), tx: css("var(--text)") }; }
+const newBag = () => { bag = shuffle(["I", "O", "T", "S", "Z", "J", "L"]); };
+const take = () => { if (!bag.length) newBag(); return bag.pop(); };
+const piece = k => ({ k, c: SHAPES[k].map(p => [p[0], p[1]]), x: 3, y: k === "I" ? -1 : 0, sz: k === "I" || k === "O" ? 4 : 3 });
+const cells = p => p.c.map(c => [p.x + c[0], p.y + c[1]]);
+function fits(p) {
+  for (const [x, y] of cells(p)) {
+    if (x < 0 || x >= W || y >= H) return false;
+    if (y >= 0 && grid[y][x]) return false;
+  }
+  return true;
+}
+function rotate() {
+  if (cur.k === "O") return;
+  const p = { ...cur, c: cur.c.map(c => [cur.sz - 1 - c[1], c[0]]) };
+  for (const k of [0, -1, 1, -2, 2]) { p.x = cur.x + k; if (fits(p)) { cur = p; draw(); return; } }
+}
+function shift(dx, dy) {
+  const p = { ...cur, x: cur.x + dx, y: cur.y + dy };
+  if (fits(p)) { cur = p; return true; }
+  return false;
+}
+function lock() {
+  for (const [x, y] of cells(cur)) {
+    if (y < 0) return gameOver();
+    grid[y][x] = cur.k;
+  }
+  let full = 0;
+  for (let y = H - 1; y >= 0; y--) {
+    if (grid[y].every(Boolean)) { grid.splice(y, 1); grid.unshift(emptyRow()); full++; y++; }
+  }
+  if (full) {
+    score += [0, 100, 300, 500, 800][full] * level; lines += full;
+    level = Math.floor(lines / 10) + 1;
+  }
+  spawn();
+}
+function spawn() {
+  cur = piece(next); next = take();
+  if (!fits(cur)) return gameOver();
+  stats(); draw(); drawNext();
+}
+const emptyRow = () => Array(W).fill("");
+const gravity = () => Math.max(70, 800 - (level - 1) * 70);
+function tick() {
+  if (!running) return;
+  if (!shift(0, 1)) lock();
+  draw();
+  if (running) timer = setTimeout(tick, gravity());
+}
+function act(a) {
+  if (!running) { if (a === "rot" || a === "drop") { if (over) newGame(); else resume(); } return; }
+  if (a === "left") shift(-1, 0);
+  else if (a === "right") shift(1, 0);
+  else if (a === "down") { if (shift(0, 1)) score += 1; else lock(); }
+  else if (a === "rot") rotate();
+  else if (a === "drop") { let n = 0; while (shift(0, 1)) n++; score += n * 2; lock(); }
+  stats(); draw();
+}
+function stats() {
+  if (score > best) { best = score; store.set("tetris.best", best); }
+  $("#tScore").textContent = score; $("#tLines").textContent = lines; $("#tLevel").textContent = level; $("#tBest").textContent = best;
+}
+function newGame() {
+  grid = Array.from({ length: H }, emptyRow);
+  score = 0; lines = 0; level = 1; over = false; newBag(); next = take();
+  spawn(); resume();
+}
+function resume() {
+  if (over || running) return;
+  running = true; $("#tStart").textContent = "Pause";
+  clearTimeout(timer); timer = setTimeout(tick, gravity()); draw();
+}
+function pause() {
+  if (!running) return;
+  running = false; clearTimeout(timer); $("#tStart").textContent = "Weiter"; draw();
+}
+function gameOver() {
+  running = false; over = true; clearTimeout(timer); stats(); draw();
+  $("#tStart").textContent = "Neues Spiel";
+}
+function block(c, x, y, s, col, alpha = 1) {
+  c.globalAlpha = alpha; c.fillStyle = col; c.fillRect(x * s + 1, y * s + 1, s - 2, s - 2); c.globalAlpha = 1;
+}
+function draw() {
+  ctx.fillStyle = T.sf2; ctx.fillRect(0, 0, W * cs, H * cs);
+  ctx.strokeStyle = T.bd; ctx.lineWidth = 1;
+  for (let x = 1; x < W; x++) { ctx.beginPath(); ctx.moveTo(x * cs + 0.5, 0); ctx.lineTo(x * cs + 0.5, H * cs); ctx.stroke(); }
+  if (grid) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x]) block(ctx, x, y, cs, COL[grid[y][x]]);
+    if (cur && !over) {
+      const g = { ...cur };
+      while (fits({ ...g, y: g.y + 1 })) g.y++;
+      for (const [x, y] of cells(g)) if (y >= 0) block(ctx, x, y, cs, COL[cur.k], 0.25);
+      for (const [x, y] of cells(cur)) if (y >= 0) block(ctx, x, y, cs, COL[cur.k]);
+    }
+  }
+  if (!running) {
+    ctx.fillStyle = isDark() ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.7)"; ctx.fillRect(0, 0, W * cs, H * cs);
+    ctx.fillStyle = T.tx; ctx.textAlign = "center";
+    ctx.font = `bold ${Math.round(cs * 1.1)}px system-ui, sans-serif`;
+    ctx.fillText(over ? (score ? "Spiel vorbei" : "Tetris") : "Pause", W * cs / 2, H * cs / 2 - cs);
+    ctx.font = `${Math.round(cs * 0.8)}px system-ui, sans-serif`;
+    ctx.fillText(over ? "Start antippen" : "Weiter antippen", W * cs / 2, H * cs / 2 + cs * 0.6);
+  }
+}
+function drawNext() {
+  const s = 18, c = SHAPES[next], xs = c.map(p => p[0]), ys = c.map(p => p[1]);
+  const mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
+  const ox = (92 - (mxx - mnx + 1) * s) / 2, oy = (60 - (mxy - mny + 1) * s) / 2;
+  nctx.fillStyle = T.sf2; nctx.fillRect(0, 0, 92, 60);
+  nctx.fillStyle = COL[next];
+  for (const p of c) nctx.fillRect(ox + (p[0] - mnx) * s + 1, oy + (p[1] - mny) * s + 1, s - 2, s - 2);
+}
+function size() {
+  const r = devicePixelRatio || 1, availW = $("#tWrap").clientWidth - 104, availH = innerHeight - 250;
+  cs = Math.max(12, Math.min(30, Math.floor(Math.min(availW / W, availH / H))));
+  cv.style.width = W * cs + "px"; cv.style.height = H * cs + "px";
+  cv.width = Math.round(W * cs * r); cv.height = Math.round(H * cs * r); ctx.setTransform(r, 0, 0, r, 0, 0);
+  nv.width = Math.round(92 * r); nv.height = Math.round(60 * r); nctx.setTransform(r, 0, 0, r, 0, 0);
+  draw(); if (next) drawNext();
+}
+
+$$("#tPad button, #tDrop").forEach(b => {
+  const a = b.dataset.a;
+  onPress(b, () => act(a), a === "left" || a === "right" ? 90 : a === "down" ? 50 : 0);
+});
+onPress($("#tStart"), () => { if (over) newGame(); else if (running) pause(); else resume(); });
+onPress(cv, () => act("rot"));
+const KEYMAP = { ArrowLeft: "left", ArrowRight: "right", ArrowDown: "down", ArrowUp: "rot", " ": "drop" };
+addEventListener("keydown", e => {
+  if (isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (KEYMAP[e.key]) { e.preventDefault(); act(KEYMAP[e.key]); }
+  else if (e.key === "p" || e.key === "P") { running ? pause() : resume(); }
+});
+/* Leertaste soll nicht zusätzlich den fokussierten Knopf auslösen */
+addEventListener("keyup", e => { if (e.key === " " && !isTyping(e)) e.preventDefault(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+addEventListener("blur", pause);
+addEventListener("resize", size);
+mql.addEventListener?.("change", () => { theme(); draw(); if (next) drawNext(); });
+theme();
+$("#tBest").textContent = best;
+size();
+})();
+</script>
+</body>
+</html>

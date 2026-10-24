@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schiebepuzzle · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#pz{position:relative;width:min(100%,420px);aspect-ratio:1;margin:0 auto 12px;border-radius:12px;background:var(--surface-2);container-type:inline-size;touch-action:none;user-select:none;-webkit-user-select:none}
+#pz .t{position:absolute;border-radius:10px;display:grid;place-items:center;font-weight:700;cursor:pointer;background:var(--accent);color:var(--on-accent);transition:left .1s,top .1s,background .15s;font-variant-numeric:tabular-nums}
+#pz .t.ok{background:var(--accent-soft);color:var(--text)}
+#pz.goal .t{opacity:0}
+#pz .ghost{position:absolute;border-radius:10px;display:grid;place-items:center;font-weight:700;border:2px dashed var(--accent);color:var(--text);pointer-events:none}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Schiebepuzzle</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="pSize"><button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button></div>
+  <div class="stats"><div><b id="pMoves">0</b><span>Züge</span></div><div><b id="pTime">00:00</b><span>Zeit</span></div><div><b id="pBest">–</b><span>Beste Züge</span></div></div>
+  <div id="pz" aria-label="Spielfeld"></div>
+  <p class="msg" id="pMsg" role="status"></p>
+  <div class="ctl"><button id="pNew" class="ac">Mischen</button><button id="pHelp" class="tonal" aria-pressed="false">Ziel zeigen</button></div>
+  <p class="muted" style="font-size:14px">Tippe auf ein Feld in der Reihe oder Spalte der Lücke oder wische (auch Pfeiltasten oder WASD). Ziel: Zahlen der Reihe nach, Lücke unten rechts.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Schiebepuzzle
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+const isTyping = e => /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.target?.isContentEditable;
+const pad = n => String(n).padStart(2, "0");
+const fmtDur = ms => { const s = Math.floor(Math.max(0, ms) / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return (h ? h + ":" + pad(m) : pad(m)) + ":" + pad(s % 60); };
+const KEYS = { ArrowLeft: "left", ArrowUp: "up", ArrowRight: "right", ArrowDown: "down", a: "left", w: "up", d: "right", s: "down", A: "left", W: "up", D: "right", S: "down" };
+
+const board = $("#pz");
+let n = store.get("pz.n", 4); if (![3, 4, 5].includes(n)) n = 4;
+let g, moves, t0, tmr = 0, started, done, goal = false, tiles = {};
+const best = store.get("pz.best", {});
+onLeave(() => clearInterval(tmr));
+
+const solved = () => g.every((v, i) => i === n * n - 1 || v === i + 1);
+function around(i) {
+  const x = i % n, y = Math.floor(i / n), o = [];
+  if (x > 0) o.push(i - 1); if (x < n - 1) o.push(i + 1); if (y > 0) o.push(i - n); if (y < n - 1) o.push(i + n);
+  return o;
+}
+function newGame() {
+  g = [...Array.from({ length: n * n - 1 }, (_, i) => i + 1), 0];
+  let blank = n * n - 1, last = -1;
+  /* Mischen durch zufällige gültige Züge – so ist jedes Rätsel lösbar */
+  for (let i = 0; i < n * n * 40 || solved(); i++) {
+    const nbs = around(blank), k = nbs[rnd(nbs.length)];
+    if (k === last) continue;
+    g[blank] = g[k]; g[k] = 0; last = blank; blank = k;
+  }
+  moves = 0; started = false; done = false; clearInterval(tmr);
+  $("#pTime").textContent = "00:00"; $("#pMsg").textContent = "";
+  $$("#pSize button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.n === n));
+  $("#pBest").textContent = best[n] || "–";
+  build(); setGoal(false);
+}
+/* Geometrie in Prozent der Feldbreite */
+const GAP = 1.2, S = () => (100 - GAP * (n + 1)) / n;
+const pos = i => ({ left: GAP + (i % n) * (S() + GAP) + "%", top: GAP + Math.floor(i / n) * (S() + GAP) + "%" });
+function build() {
+  board.innerHTML = ""; tiles = {};
+  const s = S();
+  for (let v = 1; v < n * n; v++) {
+    const t = document.createElement("div");
+    t.className = "t"; t.textContent = v;
+    Object.assign(t.style, { width: s + "%", height: s + "%", fontSize: (s * 0.42).toFixed(2) + "cqw" });
+    board.appendChild(t); tiles[v] = t;
+  }
+  render();
+}
+function render() {
+  g.forEach((v, i) => {
+    if (!v) return;
+    const t = tiles[v];
+    Object.assign(t.style, pos(i));
+    t.dataset.i = i;
+    t.classList.toggle("ok", v === i + 1);
+  });
+  $("#pMoves").textContent = moves;
+}
+function setGoal(on) {
+  goal = on;
+  board.classList.toggle("goal", on);
+  $$(".ghost", board).forEach(e => e.remove());
+  if (on) {
+    const s = S();
+    for (let i = 0; i < n * n - 1; i++) {
+      const e = document.createElement("div");
+      e.className = "ghost"; e.textContent = i + 1;
+      Object.assign(e.style, pos(i), { width: s + "%", height: s + "%", fontSize: (s * 0.42).toFixed(2) + "cqw" });
+      board.appendChild(e);
+    }
+  }
+  const b = $("#pHelp");
+  b.textContent = on ? "Ziel ausblenden" : "Ziel zeigen";
+  b.setAttribute("aria-pressed", on);
+}
+function tapAt(i) {
+  if (done) return;
+  if (goal) setGoal(false);
+  const b = g.indexOf(0), bx = b % n, by = Math.floor(b / n), x = i % n, y = Math.floor(i / n);
+  if ((x !== bx && y !== by) || i === b) return;
+  const step = x === bx ? (y > by ? n : -n) : (x > bx ? 1 : -1);
+  for (let k = b; k !== i; k += step) g[k] = g[k + step];
+  g[i] = 0; moved();
+}
+function swipe(d) {
+  const b = g.indexOf(0), x = b % n, y = Math.floor(b / n);
+  if (d === "left" && x < n - 1) tapAt(b + 1); else if (d === "right" && x > 0) tapAt(b - 1);
+  else if (d === "up" && y < n - 1) tapAt(b + n); else if (d === "down" && y > 0) tapAt(b - n);
+}
+function moved() {
+  moves++;
+  if (!started) { started = true; t0 = Date.now(); tmr = setInterval(() => $("#pTime").textContent = fmtDur(Date.now() - t0), 500); }
+  render();
+  if (solved()) {
+    done = true; clearInterval(tmr);
+    $("#pTime").textContent = fmtDur(Date.now() - t0);
+    const rec = !best[n] || moves < best[n];
+    if (rec) { best[n] = moves; store.set("pz.best", best); $("#pBest").textContent = moves; }
+    $("#pMsg").textContent = "Gelöst: " + moves + " Züge, " + fmtDur(Date.now() - t0) + (rec ? " – Rekord!" : "");
+  }
+}
+
+/* Tippen und Wischen per Pointer-Events */
+let sw = null;
+board.addEventListener("pointerdown", e => { sw = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
+addEventListener("pointerup", e => {
+  if (!sw || e.pointerId !== sw.id) return;
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y, ax = Math.abs(dx), ay = Math.abs(dy); sw = null;
+  if (Math.max(ax, ay) >= 30) swipe(ax > ay ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+  else if (Math.max(ax, ay) < 10) { const t = e.target.closest?.("#pz .t"); if (t) tapAt(+t.dataset.i); }
+});
+addEventListener("pointercancel", () => { sw = null; });
+addEventListener("keydown", e => {
+  if (isTyping(e) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const d = KEYS[e.key]; if (d) { e.preventDefault(); swipe(d); }
+});
+$("#pNew").onclick = newGame;
+$("#pHelp").onclick = () => setGoal(!goal);
+$("#pSize").onclick = e => { const b = e.target.closest("button"); if (b) { n = +b.dataset.n; store.set("pz.n", n); newGame(); } };
+newGame();
+})();
+</script>
+</body>
+</html>

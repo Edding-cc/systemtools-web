@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ports · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.mt{margin-top:12px}
+.center{text-align:center}
+.ok{color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;padding:6px 8px 6px 0;color:var(--muted)}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;overflow-wrap:anywhere}
+.tbl td,.tbl th{border-top:1px solid var(--border)}
+.tbl tr:first-child td,.tbl tr:first-child th{border-top:0}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:active{filter:brightness(.92)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+input[type=search].search{appearance:none}
+#pTbl td:first-child{font-family:var(--mono);font-weight:700;white-space:nowrap;width:1%;padding-right:14px}
+#pTbl tr:first-child td{padding-top:0}
+#pTbl .pr{font-size:11px;margin-top:2px}
+#pCat{margin-bottom:12px}
+.small{font-size:13px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Ports</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<input class="search" id="pq" type="search" placeholder="Port oder Dienst suchen, z. B. 443 oder ssh" aria-label="Suchen" autocomplete="off">
+<div class="chips" id="pCat"></div>
+<div class="card"><table class="tbl" id="pTbl"></table><p class="muted" id="pNone" hidden style="margin:0">Kein Treffer.</p></div>
+<p class="muted small">Standardports laut gängiger Zuordnung (IANA bzw. Herstellerstandard). Dienste können auf anderen Ports laufen – ein offener Port sagt nichts Sicheres über den Dienst aus.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Ports
+   ========================================================= */
+/* [Port, Protokoll, Dienst, Beschreibung, Kategorie] */
+/* Daten unverändert aus der WP-Version */
+const P = [
+    ["20", "TCP", "FTP-Daten", "Datenkanal im aktiven Modus", "datei"], ["21", "TCP", "FTP", "Dateiübertragung, Steuerkanal (unverschlüsselt)", "datei"],
+    ["22", "TCP", "SSH", "Secure Shell, auch SFTP und SCP", "remote"], ["23", "TCP", "Telnet", "Fernzugriff unverschlüsselt – vermeiden", "remote"],
+    ["25", "TCP", "SMTP", "Mailübertragung zwischen Servern", "mail"], ["53", "TCP/UDP", "DNS", "Namensauflösung", "netz"],
+    ["67", "UDP", "DHCP-Server", "Adressvergabe (Server)", "netz"], ["68", "UDP", "DHCP-Client", "Adressvergabe (Client)", "netz"],
+    ["69", "UDP", "TFTP", "Trivial FTP, z. B. PXE-Boot, Firmware", "datei"], ["80", "TCP", "HTTP", "Web unverschlüsselt", "web"],
+    ["88", "TCP/UDP", "Kerberos", "Authentifizierung, z. B. Active Directory", "verz"], ["110", "TCP", "POP3", "Mailabruf unverschlüsselt", "mail"],
+    ["119", "TCP", "NNTP", "Usenet", "web"], ["123", "UDP", "NTP", "Zeitsynchronisation", "netz"],
+    ["135", "TCP", "MS-RPC", "Windows RPC Endpoint Mapper", "datei"], ["137", "UDP", "NetBIOS-NS", "NetBIOS-Namensdienst", "datei"],
+    ["138", "UDP", "NetBIOS-DGM", "NetBIOS-Datagramme", "datei"], ["139", "TCP", "NetBIOS-SSN", "NetBIOS-Sitzungen (altes SMB)", "datei"],
+    ["143", "TCP", "IMAP", "Mailabruf unverschlüsselt bzw. mit STARTTLS", "mail"], ["161", "UDP", "SNMP", "Netzwerkverwaltung, Abfragen", "netz"],
+    ["162", "UDP", "SNMP-Trap", "SNMP-Benachrichtigungen", "netz"], ["179", "TCP", "BGP", "Routing zwischen autonomen Systemen", "netz"],
+    ["389", "TCP/UDP", "LDAP", "Verzeichnisdienst", "verz"], ["443", "TCP", "HTTPS", "Web über TLS", "web"], ["443", "UDP", "HTTP/3 (QUIC)", "Web über QUIC", "web"],
+    ["445", "TCP", "SMB", "Windows-Dateifreigabe direkt über TCP", "datei"], ["464", "TCP/UDP", "Kerberos kpasswd", "Kennwortänderung Kerberos", "verz"],
+    ["465", "TCP", "SMTPS", "Mail-Einlieferung mit implizitem TLS", "mail"], ["500", "UDP", "IKE / ISAKMP", "Schlüsselaustausch IPsec-VPN", "vpn"],
+    ["514", "UDP", "Syslog", "Protokollmeldungen", "netz"], ["515", "TCP", "LPD", "Druckdienst (Line Printer Daemon)", "datei"],
+    ["520", "UDP", "RIP", "Routing Information Protocol", "netz"], ["546", "UDP", "DHCPv6-Client", "Adressvergabe IPv6 (Client)", "netz"],
+    ["547", "UDP", "DHCPv6-Server", "Adressvergabe IPv6 (Server)", "netz"], ["587", "TCP", "Submission", "Mail-Einlieferung durch Clients (STARTTLS)", "mail"],
+    ["631", "TCP", "IPP", "Internet Printing Protocol (z. B. CUPS)", "datei"], ["636", "TCP", "LDAPS", "LDAP über TLS", "verz"],
+    ["853", "TCP", "DNS over TLS", "Verschlüsselte Namensauflösung (DoT)", "netz"], ["873", "TCP", "rsync", "Dateisynchronisation", "datei"],
+    ["989", "TCP", "FTPS-Daten", "FTP über TLS, Datenkanal", "datei"], ["990", "TCP", "FTPS", "FTP über TLS, Steuerkanal", "datei"],
+    ["993", "TCP", "IMAPS", "IMAP über TLS", "mail"], ["995", "TCP", "POP3S", "POP3 über TLS", "mail"],
+    ["1080", "TCP", "SOCKS", "Proxy-Protokoll", "web"], ["1194", "UDP/TCP", "OpenVPN", "Standardport OpenVPN", "vpn"],
+    ["1433", "TCP", "MS SQL Server", "Microsoft SQL Server", "db"], ["1521", "TCP", "Oracle DB", "Oracle Listener", "db"],
+    ["1701", "UDP", "L2TP", "Layer 2 Tunneling, meist mit IPsec", "vpn"], ["1723", "TCP", "PPTP", "Altes VPN-Protokoll – unsicher", "vpn"],
+    ["1812", "UDP", "RADIUS", "Authentifizierung, z. B. WLAN 802.1X", "verz"], ["1813", "UDP", "RADIUS-Accounting", "Abrechnung RADIUS", "verz"],
+    ["1883", "TCP", "MQTT", "IoT-Nachrichten unverschlüsselt", "web"], ["1900", "UDP", "SSDP / UPnP", "Geräteerkennung im LAN", "netz"],
+    ["2049", "TCP/UDP", "NFS", "Network File System", "datei"], ["2375", "TCP", "Docker API", "Docker ohne TLS – nie offen ins Netz", "remote"],
+    ["2376", "TCP", "Docker API TLS", "Docker-Daemon mit TLS", "remote"], ["3268", "TCP", "Global Catalog", "Active Directory Global Catalog", "verz"],
+    ["3269", "TCP", "Global Catalog TLS", "Global Catalog über TLS", "verz"], ["3306", "TCP", "MySQL / MariaDB", "Datenbank", "db"],
+    ["3389", "TCP/UDP", "RDP", "Windows Remotedesktop", "remote"], ["3478", "UDP/TCP", "STUN / TURN", "NAT-Traversal für VoIP/WebRTC", "netz"],
+    ["4500", "UDP", "IPsec NAT-T", "IPsec durch NAT", "vpn"], ["5060", "UDP/TCP", "SIP", "VoIP-Signalisierung", "netz"],
+    ["5061", "TCP", "SIP-TLS", "SIP über TLS", "netz"], ["5222", "TCP", "XMPP", "Chat-Client-Verbindungen", "web"],
+    ["5353", "UDP", "mDNS", "Multicast DNS (Bonjour, Avahi)", "netz"], ["5432", "TCP", "PostgreSQL", "Datenbank", "db"],
+    ["5900", "TCP", "VNC", "Bildschirmfernsteuerung", "remote"], ["5985", "TCP", "WinRM HTTP", "Windows Remote Management", "remote"],
+    ["5986", "TCP", "WinRM HTTPS", "Windows Remote Management über TLS", "remote"], ["6379", "TCP", "Redis", "In-Memory-Datenbank", "db"],
+    ["6443", "TCP", "Kubernetes API", "Kubernetes-API-Server", "remote"], ["8080", "TCP", "HTTP alternativ", "Proxys, Testserver, Admin-Oberflächen", "web"],
+    ["8443", "TCP", "HTTPS alternativ", "Admin-Oberflächen über TLS", "web"], ["8883", "TCP", "MQTT TLS", "MQTT über TLS", "web"],
+    ["9100", "TCP", "RAW-Druck", "JetDirect / Port 9100 Druck", "datei"], ["9200", "TCP", "Elasticsearch", "REST-Schnittstelle", "db"],
+    ["10050", "TCP", "Zabbix-Agent", "Monitoring-Agent", "netz"], ["10051", "TCP", "Zabbix-Server", "Monitoring-Server", "netz"],
+    ["11211", "TCP/UDP", "Memcached", "Cache-Server – nicht ins Internet", "db"], ["27017", "TCP", "MongoDB", "Datenbank", "db"],
+    ["51820", "UDP", "WireGuard", "Üblicher Standardport WireGuard", "vpn"]
+  ];
+const CATS = [["", "Alle"], ["web", "Web"], ["mail", "Mail"], ["remote", "Fernzugriff"], ["datei", "Dateien & Druck"], ["netz", "Netzdienste"], ["verz", "Verzeichnis & Auth"], ["vpn", "VPN"], ["db", "Datenbanken"]];
+let cat = "";
+$("#pCat").innerHTML = CATS.map(([c, l]) => `<button data-c="${c}">${l}</button>`).join("");
+function draw() {
+  const q = $("#pq").value.trim().toLowerCase();
+  const rows = P.filter(r => (!cat || r[4] === cat) && (!q || (/^\d+$/.test(q) ? r[0].startsWith(q) : (r[2] + " " + r[3] + " " + r[1]).toLowerCase().includes(q))));
+  $("#pTbl").innerHTML = rows.map(r => `<tr><td>${r[0]}<br><span class="badge pr">${r[1]}</span></td><td><b>${esc(r[2])}</b><br><span class="muted small">${esc(r[3])}</span></td></tr>`).join("");
+  $("#pNone").hidden = rows.length > 0;
+  $$("#pCat button").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === cat));
+}
+$("#pq").oninput = draw;
+$("#pCat").onclick = e => { const b = e.target.closest("button"); if (b) { cat = b.dataset.c; draw(); } };
+draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minesweeper · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;background:var(--surface-2);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#ms{--w:9;display:grid;grid-template-columns:repeat(var(--w),1fr);width:min(100%,calc(var(--w) * 40px));margin:0 auto 12px;container-type:inline-size;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#ms .c{aspect-ratio:1;display:grid;place-items:center;font-weight:700;font-family:var(--mono);font-size:calc(55cqw / var(--w));cursor:pointer;border-radius:3px;border:1px solid var(--bg);color:var(--text);background:color-mix(in srgb,var(--accent) 40%,var(--surface-2))}
+:root[data-dark="1"] #ms .c{background:color-mix(in srgb,var(--accent) 45%,var(--surface-2))}
+#ms .c.o{background:var(--surface-2)}
+:root[data-dark="1"] #ms .c.o{background:var(--surface)}
+#ms .c.x,:root[data-dark="1"] #ms .c.x{background:var(--err);color:#fff}
+#ms .c.f{color:var(--err)}
+#ms .c svg{width:62%;height:62%}
+#ms .n1{color:#1B6EF3}#ms .n2{color:#2E7D32}#ms .n3{color:#C0362C}#ms .n4{color:#4527A0}#ms .n5{color:#8C2F00}#ms .n6{color:#00796B}#ms .n7{color:#1a1c1f}#ms .n8{color:#5d636b}
+:root[data-dark="1"] #ms .n1{color:#7fb2ff}:root[data-dark="1"] #ms .n2{color:#7bc47f}:root[data-dark="1"] #ms .n3{color:#f08a80}:root[data-dark="1"] #ms .n4{color:#c9a7ff}:root[data-dark="1"] #ms .n5{color:#ffb070}:root[data-dark="1"] #ms .n6{color:#5fd3d3}:root[data-dark="1"] #ms .n7{color:#e6e8eb}:root[data-dark="1"] #ms .n8{color:#9aa1aa}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Minesweeper</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="lvl"><button data-l="0">Leicht 9×9</button><button data-l="1">Mittel 10×14</button><button data-l="2">Schwer 12×18</button></div>
+  <div class="stats"><div><b id="mLeft">0</b><span>Minen übrig</span></div><div><b id="mTime">0</b><span>Sekunden</span></div><div><b id="mBest">–</b><span>Bestzeit</span></div></div>
+  <div id="ms" role="grid" aria-label="Spielfeld"></div>
+  <p class="msg" id="mMsg" role="status"></p>
+  <div class="ctl"><button id="mMode" class="tonal" aria-pressed="false">Modus: Aufdecken</button><button id="mNew" class="ac">Neues Spiel</button></div>
+  <p class="muted" style="font-size:14px">Antippen deckt auf, im Flaggenmodus wird markiert. Lange drücken oder Rechtsklick setzt immer eine Flagge. Tippst du auf eine Zahl, deren Flaggen vollständig sind, werden die übrigen Nachbarn aufgedeckt. Der erste Zug ist immer sicher.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Minesweeper
+   ========================================================= */
+const rnd = n => { const lim = 2 ** 32 - (2 ** 32 % n), a = new Uint32Array(1); do crypto.getRandomValues(a); while (a[0] >= lim); return a[0] % n; };
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+const LV = [{ w: 9, h: 9, m: 10 }, { w: 10, h: 14, m: 22 }, { w: 12, h: 18, m: 40 }];
+const FLAG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 1h1.6v14H4z"/><path d="M5.6 1.5L13 4.8 5.6 8.2z"/></svg>';
+const MINE = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="4.6"/><path d="M7.3 0.8h1.4v14.4H7.3zM0.8 7.3h14.4v1.4H0.8z"/></svg>';
+let lv = store.get("ms.lv", 0); if (!LV[lv]) lv = 0;
+let cells = [], els = [], started = false, over = false, opened = 0, flags = 0, t0 = 0, timer = 0, flagMode = false;
+const best = store.get("ms.best", {});
+const board = $("#ms");
+onLeave(() => clearInterval(timer));
+
+function nb(i) {
+  const L = LV[lv], x = i % L.w, y = Math.floor(i / L.w), out = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++)
+    if ((dx || dy) && x + dx >= 0 && x + dx < L.w && y + dy >= 0 && y + dy < L.h) out.push((y + dy) * L.w + x + dx);
+  return out;
+}
+function newGame() {
+  const L = LV[lv], n = L.w * L.h;
+  clearInterval(timer); started = over = false; opened = flags = 0;
+  cells = Array.from({ length: n }, () => ({ m: false, n: 0, o: false, f: false }));
+  board.style.setProperty("--w", L.w);
+  board.innerHTML = cells.map((_, i) => `<div class="c" data-i="${i}" role="gridcell"></div>`).join("");
+  els = $$(".c", board);
+  $("#mTime").textContent = "0"; $("#mMsg").textContent = "";
+  $("#mBest").textContent = best[lv] ? best[lv] + " s" : "–";
+  $$("#lvl button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.l === lv));
+  counter();
+}
+const counter = () => $("#mLeft").textContent = LV[lv].m - flags;
+function plant(safe) {
+  const L = LV[lv], bad = new Set([...nb(safe), safe]);
+  const pool = shuffle(cells.map((_, i) => i).filter(i => !bad.has(i)));
+  for (let i = 0; i < L.m; i++) cells[pool[i]].m = true;
+  cells.forEach((c, i) => c.n = nb(i).filter(j => cells[j].m).length);
+  started = true; t0 = Date.now();
+  timer = setInterval(() => $("#mTime").textContent = Math.floor((Date.now() - t0) / 1000), 500);
+}
+function draw(i) {
+  const c = cells[i], e = els[i];
+  if (c.o) { e.className = "c o" + (c.m ? " x" : c.n ? " n" + c.n : ""); e.innerHTML = c.m ? MINE : c.n ? c.n : ""; }
+  else { e.className = "c" + (c.f ? " f" : ""); e.innerHTML = c.f ? FLAG : ""; }
+}
+function reveal(i) {
+  const stack = [i];
+  while (stack.length) {
+    const k = stack.pop();
+    if (cells[k].o || cells[k].f) continue;
+    cells[k].o = true; opened++; draw(k);
+    if (cells[k].m) return lose(k);
+    if (cells[k].n === 0) nb(k).forEach(j => { if (!cells[j].o) stack.push(j); });
+  }
+  if (opened === cells.length - LV[lv].m) win();
+}
+function chord(i) {
+  const a = nb(i);
+  if (a.filter(j => cells[j].f).length !== cells[i].n) return;
+  for (const j of a) { if (over) break; if (!cells[j].o && !cells[j].f) reveal(j); }
+}
+function toggleFlag(i) {
+  const c = cells[i]; if (c.o) return;
+  c.f = !c.f; flags += c.f ? 1 : -1; draw(i); counter();
+}
+function lose(k) {
+  over = true; clearInterval(timer);
+  cells.forEach((c, i) => {
+    if (c.m && !c.f) { c.o = true; draw(i); }
+    else if (!c.m && c.f) els[i].innerHTML = "✕";
+  });
+  els[k].className = "c o x";
+  $("#mMsg").textContent = "Mine getroffen. Neues Spiel?";
+}
+function win() {
+  over = true; clearInterval(timer);
+  const s = Math.max(1, Math.round((Date.now() - t0) / 1000)), rec = !best[lv] || s < best[lv];
+  cells.forEach((c, i) => { if (c.m && !c.f) { c.f = true; draw(i); } });
+  flags = LV[lv].m; counter();
+  if (rec) { best[lv] = s; store.set("ms.best", best); $("#mBest").textContent = s + " s"; }
+  $("#mTime").textContent = s;
+  $("#mMsg").textContent = "Gewonnen in " + s + " s" + (rec ? " – neue Bestzeit!" : "");
+}
+function tap(i) {
+  if (over) return;
+  const c = cells[i];
+  if (c.o) { if (c.n) chord(i); return; }
+  if (flagMode) { toggleFlag(i); return; }
+  if (c.f) return;
+  if (!started) plant(i);
+  reveal(i);
+}
+
+/* Langes Drücken = Flagge */
+let lpTimer = 0, lpFired = false, lpX = 0, lpY = 0;
+const idxOf = e => { const t = e.target.closest("[data-i]"); return t ? +t.dataset.i : -1; };
+board.addEventListener("pointerdown", e => {
+  const i = idxOf(e); lpFired = false; clearTimeout(lpTimer);
+  if (i < 0 || over || e.button > 0) return;
+  lpX = e.clientX; lpY = e.clientY;
+  lpTimer = setTimeout(() => { lpFired = true; if (!cells[i].o) { toggleFlag(i); navigator.vibrate?.(30); } }, 450);
+});
+board.addEventListener("pointermove", e => { if (Math.abs(e.clientX - lpX) > 10 || Math.abs(e.clientY - lpY) > 10) clearTimeout(lpTimer); });
+["pointerup", "pointercancel", "pointerleave"].forEach(ev => board.addEventListener(ev, () => clearTimeout(lpTimer)));
+board.addEventListener("contextmenu", e => {
+  e.preventDefault();
+  const i = idxOf(e);
+  if (i >= 0 && !lpFired && !over) toggleFlag(i);
+  lpFired = true;
+});
+board.addEventListener("click", e => {
+  const i = idxOf(e);
+  if (lpFired) { lpFired = false; return; }
+  if (i >= 0) tap(i);
+});
+
+$("#mMode").onclick = e => {
+  flagMode = !flagMode;
+  const b = e.currentTarget;
+  b.textContent = flagMode ? "Modus: Flagge" : "Modus: Aufdecken";
+  b.className = flagMode ? "ac" : "tonal";
+  b.setAttribute("aria-pressed", flagMode);
+};
+$("#mNew").onclick = newGame;
+$("#lvl").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  lv = +b.dataset.l; store.set("ms.lv", lv); newGame();
+};
+newGame();
+})();
+</script>
+</body>
+</html>

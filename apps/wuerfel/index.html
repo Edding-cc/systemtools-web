@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Würfel &amp; Münze · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+/* Gemeinsame Bausteine der Apps */
+input[type=tel],input[type=password],input[type=search]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+.flex{display:flex;align-items:center;gap:8px}
+.flex>.grow{flex:1;min-width:0}
+.mt{margin-top:12px}
+.center{text-align:center}
+.between{justify-content:space-between}
+.ok{color:var(--ok)}
+.result{background:var(--surface-2);border-radius:12px;padding:12px 14px;margin-top:12px;overflow-wrap:anywhere}
+.result .big{font-size:34px}
+.stats{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+.stats>div{background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center;min-width:0}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:8px;margin-bottom:12px;user-select:none;-webkit-user-select:none}
+.ctl.c2{--n:2}.ctl.c4{--n:4}
+.ctl button{height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);padding:0 4px;touch-action:none}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.ctl button.down,.ctl button:active:not(:disabled),.btn.down{box-shadow:inset 0 0 0 100px color-mix(in srgb,currentColor 14%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:6px 8px 6px 0}
+.tbl td{padding:6px 8px 6px 0;vertical-align:top;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.tbl tr:first-child td{border-top:0}
+.timebig{font-size:56px;font-weight:700;line-height:1.1;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:center;margin:8px 0}
+@media (max-width:380px){.timebig{font-size:46px}}
+/* Seite */
+#dice{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:80px;touch-action:manipulation;cursor:pointer;user-select:none;-webkit-user-select:none}
+#dice svg{width:72px;height:72px}
+#dice .bg{fill:var(--accent)}
+#dice .fg{fill:var(--on-accent)}
+#dice svg.roll,#coin.roll{animation:shake .35s}
+@keyframes shake{0%{transform:rotate(0)}30%{transform:rotate(-20deg)}60%{transform:rotate(15deg)}100%{transform:rotate(0)}}
+@media (prefers-reduced-motion:reduce){#dice svg.roll,#coin.roll{animation:none}}
+#coin{width:120px;height:120px;border-radius:50%;margin:4px auto 12px;display:grid;place-items:center;font-size:22px;font-weight:700;cursor:pointer;border:0;background:var(--accent);color:var(--on-accent);box-shadow:inset 0 0 0 6px color-mix(in srgb,var(--on-accent) 25%,transparent)}
+#rOut{overflow-wrap:anywhere}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Würfel &amp; Münze</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="wMode" role="group" style="margin-bottom:12px"><button data-m="dice">Würfel</button><button data-m="coin">Münze</button><button data-m="num">Zufallszahl</button></div>
+<div id="pDice">
+<div class="card">
+<label class="fld">Anzahl Würfel</label><div class="chips" id="wN"></div>
+<label class="fld">Seiten</label><div class="chips" id="wS"></div>
+<div id="dice" class="mt" role="button" tabindex="0" aria-label="Würfeln"></div>
+<div class="center"><span class="big" id="wSum">–</span><div class="muted" id="wSumL">Summe</div></div>
+</div>
+<div class="ctl c2"><button id="wRoll" class="ac">Würfeln</button><button id="wClr" class="tonal">Verlauf leeren</button></div>
+<div class="card"><h3>Verlauf</h3><div id="wHist" class="mono" style="font-size:14px"></div></div>
+</div>
+<div id="pCoin" hidden>
+<div class="card center"><button id="coin" aria-label="Münze werfen">?</button><div class="stats" style="margin-bottom:0"><div><b id="cK">0</b><span>Kopf</span></div><div><b id="cZ">0</b><span>Zahl</span></div></div></div>
+<div class="ctl c2"><button id="cFlip" class="ac">Werfen</button><button id="cClr" class="tonal">Zähler löschen</button></div>
+</div>
+<div id="pNum" hidden>
+<div class="card">
+<div class="grid2"><div><label class="fld" for="rMin">Von</label><input type="number" id="rMin" value="1"></div><div><label class="fld" for="rMax">Bis</label><input type="number" id="rMax" value="100"></div></div>
+<label class="fld" for="rCnt">Anzahl Zahlen</label><input type="number" id="rCnt" value="1" min="1" max="100">
+<label class="switch"><span>Ohne Wiederholung (z. B. Lose ziehen)</span><input type="checkbox" id="rUniq"></label>
+<div class="result center"><div class="big" id="rOut">–</div></div>
+</div>
+<div class="ctl c2"><button id="rGo" class="ac">Ziehen</button><button id="rCopy" class="tonal">Kopieren</button></div>
+</div>
+<p class="muted" style="font-size:13px">Zufall: kryptografischer Zufallsgenerator des Browsers (crypto.getRandomValues).</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Würfel & Münze
+   ========================================================= */
+/* "1.234,5" oder "1234.5" -> Zahl, sonst NaN */
+function parseNum(v) {
+  v = String(v ?? "").replace(/[\s ']/g, "");
+  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  return /^[+\-]?(\d+\.?\d*|\.\d+)(e[+\-]?\d+)?$/i.test(v) ? parseFloat(v) : NaN;
+}
+/* gleichverteilte Ganzzahl 0 … n-1 aus crypto.getRandomValues (ohne Modulo-Verzerrung) */
+const rndBuf = new Uint32Array(1);
+function rnd(n) {
+  const lim = 4294967296 - (4294967296 % n);
+  let x;
+  do { crypto.getRandomValues(rndBuf); x = rndBuf[0]; } while (x >= lim);
+  return x % n;
+}
+/* Löst sofort beim Antippen aus (Pointer Events); mit repeat (ms) wiederholt beim Halten.
+   Tastatur: Enter/Leertaste. */
+function onPress(el, fn, repeat) {
+  let t1 = 0, t2 = 0;
+  const stop = () => { clearTimeout(t1); clearInterval(t2); el.classList.remove("down"); };
+  el.style.touchAction = "none";
+  el.addEventListener("pointerdown", e => {
+    if (e.button > 0 || el.disabled) return;
+    e.preventDefault(); stop(); el.classList.add("down"); fn(e);
+    if (repeat) t1 = setTimeout(() => { t2 = setInterval(() => { if (el.disabled || !el.isConnected) stop(); else fn(); }, repeat); }, 280);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) el.addEventListener(ev, stop);
+  el.addEventListener("contextmenu", e => e.preventDefault());
+  el.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && !e.repeat) { e.preventDefault(); fn(e); } });
+}
+const SIDES = [4, 6, 8, 10, 12, 20, 100];
+const cfg = Object.assign({ n: 2, s: 6, mode: "dice", k: 0, z: 0 }, store.get("dice", {}));
+let hist = store.get("dice.hist", []);
+const PIPS = { 1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[28, 28], [50, 50], [72, 72]], 4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]], 6: [[28, 26], [72, 26], [28, 50], [72, 50], [28, 74], [72, 74]] };
+
+const save = () => store.set("dice", cfg);
+function chips() {
+  $("#wN").innerHTML = [1, 2, 3, 4, 5, 6].map(i => `<button data-v="${i}" aria-pressed="${cfg.n === i}">${i}</button>`).join("");
+  $("#wS").innerHTML = SIDES.map(s => `<button data-v="${s}" aria-pressed="${cfg.s === s}">W${s}</button>`).join("");
+}
+function die(v, s, anim) {
+  let h = `<svg viewBox="0 0 100 100"${anim ? ' class="roll"' : ""} role="img" aria-label="${v}">`;
+  if (s === 6) {
+    h += '<rect class="bg" x="4" y="4" width="92" height="92" rx="18"/>';
+    h += PIPS[v].map(([x, y]) => `<circle class="fg" cx="${x}" cy="${y}" r="9"/>`).join("");
+  } else {
+    const shape = s === 4 ? '<path class="bg" d="M50 6l44 84H6z"/>' : s === 8 ? '<path class="bg" d="M50 4l44 46-44 46L6 50z"/>' :
+      s === 20 || s === 12 ? '<path class="bg" d="M50 4l40 23v46L50 96 10 73V27z"/>' : '<rect class="bg" x="6" y="6" width="88" height="88" rx="44"/>';
+    h += shape + `<text class="fg" x="50" y="${s === 4 ? 74 : 62}" text-anchor="middle" font-size="${v > 99 ? 28 : 34}" font-weight="700" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif">${v}</text>`;
+  }
+  return h + "</svg>";
+}
+function roll() {
+  const r = Array.from({ length: cfg.n }, () => rnd(cfg.s) + 1), sum = r.reduce((a, b) => a + b, 0);
+  $("#dice").innerHTML = r.map(v => die(v, cfg.s, true)).join("");
+  $("#wSum").textContent = sum;
+  $("#wSumL").textContent = cfg.n > 1 ? `Summe aus ${cfg.n}W${cfg.s}` : `Ergebnis W${cfg.s}`;
+  hist.unshift(`${cfg.n}W${cfg.s}: ${r.join(" + ")}${cfg.n > 1 ? " = " + sum : ""}`); hist = hist.slice(0, 30);
+  store.set("dice.hist", hist); drawHist();
+}
+const drawHist = () => $("#wHist").innerHTML = hist.length ? hist.map(esc).join("<br>") : '<span class="muted">Noch nicht gewürfelt.</span>';
+function idle() { $("#dice").innerHTML = die(cfg.s === 6 ? 6 : cfg.s, cfg.s, false).repeat(cfg.n); $("#wSum").textContent = "–"; $("#wSumL").textContent = "Summe"; }
+
+$("#wN").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.n = +b.dataset.v; save(); chips(); idle(); } };
+$("#wS").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.s = +b.dataset.v; save(); chips(); idle(); } };
+onPress($("#wRoll"), roll);
+$("#dice").onclick = roll;
+$("#dice").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); roll(); } };
+$("#wClr").onclick = () => { hist = []; store.set("dice.hist", hist); drawHist(); };
+
+const coinDraw = () => { $("#cK").textContent = cfg.k; $("#cZ").textContent = cfg.z; };
+function flip() {
+  const c = $("#coin"), k = rnd(2) === 0;
+  c.classList.remove("roll"); c.textContent = "…";
+  setTimeout(() => { c.classList.add("roll"); c.textContent = k ? "Kopf" : "Zahl"; if (k) cfg.k++; else cfg.z++; save(); coinDraw(); }, 120);
+}
+onPress($("#cFlip"), flip); onPress($("#coin"), flip);
+$("#cClr").onclick = () => { cfg.k = cfg.z = 0; save(); coinDraw(); $("#coin").textContent = "?"; };
+
+$("#rGo").onclick = () => {
+  let a = Math.round(parseNum($("#rMin").value)), b = Math.round(parseNum($("#rMax").value)), n = Math.round(parseNum($("#rCnt").value));
+  const out = [];
+  if (isNaN(a) || isNaN(b)) { toast("Bereich eingeben"); return; }
+  if (a > b) [a, b] = [b, a];
+  if (!(n >= 1 && n <= 100)) n = 1;
+  if (b - a + 1 > 4294967296) { toast("Bereich zu groß"); return; }
+  if ($("#rUniq").checked) {
+    if (n > b - a + 1) { toast("Nicht genug Zahlen im Bereich"); return; }
+    const pool = new Set();
+    while (out.length < n) { const v = a + rnd(b - a + 1); if (!pool.has(v)) { pool.add(v); out.push(v); } }
+  } else for (let i = 0; i < n; i++) out.push(a + rnd(b - a + 1));
+  $("#rOut").style.fontSize = n > 1 ? "24px" : ""; $("#rOut").textContent = out.join(", ");
+};
+$("#rCopy").onclick = () => { const t = $("#rOut").textContent; if (t !== "–") copy(t); };
+
+function setMode(m) {
+  cfg.mode = m; save();
+  $("#pDice").hidden = m !== "dice"; $("#pCoin").hidden = m !== "coin"; $("#pNum").hidden = m !== "num";
+  $$("#wMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === m));
+}
+$("#wMode").onclick = e => { const b = e.target.closest("button"); if (b) setMode(b.dataset.m); };
+if (!SIDES.includes(cfg.s)) cfg.s = 6;
+if (!(cfg.n >= 1 && cfg.n <= 6)) cfg.n = 2;
+chips(); idle(); drawHist(); coinDraw(); setMode(["dice", "coin", "num"].includes(cfg.mode) ? cfg.mode : "dice");
+})();
+</script>
+</body>
+</html>
