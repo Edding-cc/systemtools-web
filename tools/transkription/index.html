@@ -23,6 +23,7 @@
 #txDev{display:flex;max-width:100%}
 #txDev button{flex:1;padding:8px 10px}
 #txDev button:disabled{opacity:.4;cursor:default}
+.badge.warn{color:var(--warn)}
 </style>
 <script>var ROOT="../../";</script>
 <script src="../../assets/common.js"></script>
@@ -45,6 +46,10 @@
 const TX_LIB = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js";
 const TX_CACHE = "transformers-cache"; // Cache-Storage-Name, den Transformers.js für Modelle und WASM nutzt
 const TX_SR = 16000;
+const TX_PARTS = "tx-parts"; // angefangene Downloads, Stück für Stück, bis die Datei komplett ist
+const TX_PIECE = 4 << 20; // was beim Schließen des Tabs noch nicht gespeichert war, wird neu geladen
+// Laufzeit, die Transformers.js 4.3.1 nachlädt (passend zur Version fest verdrahtet)
+const TX_RUNTIME = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort-wasm-simd-threaded.asyncify";
 // Dateigrößen in MB je Datentyp (Encoder, Decoder), Stand Hugging Face
 const TX_MODELS = [
   { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, für Deutsch kaum brauchbar", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
@@ -128,6 +133,10 @@ function txDtype(m, dev, f16) {
 }
 const txSize = (m, dt) => (m.enc[dt.encoder_model] || 0) + (m.dec[dt.decoder_model_merged] || 0);
 const txFiles = (m, dt) => [`onnx/encoder_model${TX_SUFFIX[dt.encoder_model]}.onnx`, `onnx/decoder_model_merged${TX_SUFFIX[dt.decoder_model_merged]}.onnx`].map(f => `https://huggingface.co/${m.id}/resolve/main/${f}`);
+// Alles, was Transformers.js für ein Whisper-Modell lädt (gemessen); liegt es im Cache, braucht das Laden kein Netz
+const txAllFiles = (m, dt) => [
+  ...["config.json", "generation_config.json", "preprocessor_config.json", "tokenizer_config.json", "tokenizer.json"].map(f => `https://huggingface.co/${m.id}/resolve/main/${f}`),
+  ...txFiles(m, dt), TX_RUNTIME + ".mjs", TX_RUNTIME + ".wasm"];
 async function txGpu() {
   if (tx.gpu !== undefined) return tx.gpu;
   try { const a = await navigator.gpu?.requestAdapter(); tx.gpu = a ? { f16: a.features.has("shader-f16") } : null; } catch { tx.gpu = null; }
@@ -141,8 +150,16 @@ async function txCacheList() {
     const g = hf ? hf[1] : /onnxruntime/.test(req.url) ? "runtime" : "other";
     const res = await c.match(req);
     const size = +(res?.headers.get("content-length") || 0);
-    (groups[g] ||= { size: 0, reqs: [] }).size += size;
+    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [] }).size += size;
     groups[g].reqs.push(req);
+  }
+  const pc = await caches.open(TX_PARTS);
+  for (const req of await pc.keys()) {
+    const hf = /huggingface\.co\/([^/]+\/[^/]+)\/resolve\//.exec(req.url);
+    const g = hf ? hf[1] : "runtime";
+    const res = /\?st-part=/.test(req.url) ? await pc.match(req) : null;
+    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [] }).part += +(res?.headers.get("content-length") || 0);
+    groups[g].preqs.push(req);
   }
   return groups;
 }
@@ -173,6 +190,110 @@ async function txDecode(file) {
   for (let ch = 0; ch < buf.numberOfChannels; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < d.length; i++) out[i] += d[i] / buf.numberOfChannels; }
   return out;
 }
+/* ---------- Fortsetzbarer Download ----------
+   Dateien kommen in Stücken (HTTP-Range) in den Cache TX_PARTS. Bricht die Verbindung ab, wird pausiert
+   oder der Tab geschlossen, geht es später ab dem letzten Stück weiter. Fertig zusammengesetzt landen sie
+   unter der Adresse im Transformers-Cache, unter der die Bibliothek sie sucht. */
+class TxHttpError extends Error {}
+const TX_DL_STOP = "Abgebrochen. Der angefangene Download bleibt gespeichert und geht beim nächsten Start an dieser Stelle weiter.";
+// Wartet auf Fortsetzen/Abbrechen (tx.wake), wieder Netz, Rückkehr in den Tab oder Zeitablauf (ms = 0: ohne)
+function txSleep(ms) {
+  return new Promise(res => {
+    let t = 0;
+    const vis = () => { if (!document.hidden) done(); };
+    const done = () => { clearTimeout(t); removeEventListener("online", done); document.removeEventListener("visibilitychange", vis); tx.wake = null; res(); };
+    if (ms) t = setTimeout(done, ms);
+    addEventListener("online", done); document.addEventListener("visibilitychange", vis);
+    tx.wake = done;
+  });
+}
+async function txFetchFile(url, prog) {
+  const fin = await caches.open(TX_CACHE);
+  const have = await fin.match(url);
+  if (have) { const n = +(have.headers.get("content-length") || 0); prog(n, n); return; }
+  const parts = await caches.open(TX_PARTS), metaKey = url + "?st-meta";
+  const mine = async () => (await parts.keys()).filter(r => r.url.startsWith(url + "?"));
+  const pieces = async () => (await mine()).map(r => [+(/\?st-part=(\d+)$/.exec(r.url) || [])[1], r]).filter(([st]) => st >= 0).sort((a, b) => a[0] - b[0]);
+  const reset = async () => { for (const r of await mine()) await parts.delete(r); off = 0; meta = null; };
+  let meta = null, off = 0;
+  try { meta = await (await parts.match(metaKey))?.json(); } catch {}
+  // Vorhandene Stücke lückenlos aneinanderreihen, alles nach einer Lücke verwerfen
+  for (const [st, r] of await pieces()) {
+    const len = +((await parts.match(r))?.headers.get("content-length") || 0);
+    if (st === off && len) off += len; else await parts.delete(r);
+  }
+  while (!meta?.total || off < meta.total) {
+    const res = await fetch(url, { headers: off ? { Range: `bytes=${off}-` } : {}, signal: tx.ctl.signal, cache: "no-store" });
+    if (res.status !== 200 && res.status !== 206) throw new TxHttpError(`Download fehlgeschlagen (HTTP ${res.status}).`);
+    const range = /\/(\d+)$/.exec(res.headers.get("content-range") || "");
+    const total = res.status === 206 && range ? +range[1] : +(res.headers.get("content-length") || 0);
+    const etag = res.headers.get("etag") || "";
+    // Server ignoriert den Bereich oder die Datei hat sich geändert: von vorn
+    if (off && (res.status !== 206 || (meta && (meta.total !== total || meta.etag !== etag)))) { res.body?.cancel().catch(() => {}); await reset(); continue; }
+    if (!meta) { meta = { total, etag }; await parts.put(metaKey, new Response(JSON.stringify(meta))); }
+    const rd = res.body.getReader();
+    let buf = [], n = 0;
+    const flush = async () => {
+      if (!n) return;
+      await parts.put(`${url}?st-part=${off}`, new Response(new Blob(buf), { headers: { "content-length": String(n) } }));
+      off += n; buf = []; n = 0;
+    };
+    let ended = false;
+    try {
+      for (;;) {
+        const { done, value } = await rd.read();
+        if (done) { ended = true; break; }
+        buf.push(value); n += value.length; prog(off + n, total);
+        if (n >= TX_PIECE) await flush();
+      }
+      await flush();
+    } catch (e) {
+      // Bereits Empfangenes behalten; bei kleinen (evtl. komprimiert gelieferten) Dateien lieber neu laden
+      if (total > TX_PIECE) await flush().catch(() => {});
+      throw e;
+    }
+    if (ended && (!total || off >= total)) break; // ohne Längenangabe gilt das Stream-Ende als fertig
+  }
+  const blob = new Blob(await Promise.all((await pieces()).map(async ([, r]) => (await parts.match(r)).blob())));
+  if (meta?.total && blob.size < meta.total) { await reset(); throw new Error("Download unvollständig, bitte erneut starten."); }
+  await fin.put(url, new Response(blob, { headers: { "content-length": String(blob.size) } }));
+  await reset();
+  prog(blob.size, blob.size);
+}
+async function txDownload(urls) {
+  Object.assign(tx, { fetching: true, paused: false, netWait: false, ctl: new AbortController() });
+  let wait = 2000;
+  try {
+    for (const url of urls) {
+      const file = url.replace(/^.*\/resolve\/main\/|^.*\/dist\//, "");
+      for (;;) {
+        if (tx.stop) throw new Error(TX_DL_STOP);
+        if (tx.paused) { tx.ui?.status(); tx.ui?.cache(); await txSleep(0); continue; }
+        try {
+          await txFetchFile(url, (l, t) => { tx.dl[file] = [l, t]; });
+          tx.netWait = false; wait = 2000;
+          break;
+        } catch (e) {
+          if (tx.stop) throw new Error(TX_DL_STOP);
+          if (tx.ctl.signal.aborted) tx.ctl = new AbortController();
+          if (tx.paused) continue;
+          if (e.name === "QuotaExceededError") throw new Error("Nicht genug freier Speicher für das Modell.");
+          if (e instanceof TxHttpError && !/HTTP 5\d\d/.test(e.message)) throw e;
+          // Netz weg (WLAN-Wechsel, Funkloch, Tab im Hintergrund): warten und an der letzten Stelle weitermachen
+          tx.netWait = true; tx.ui?.status();
+          await txSleep(wait); wait = Math.min(wait * 2, 30000);
+        }
+      }
+    }
+  } finally { Object.assign(tx, { fetching: false, paused: false, netWait: false }); }
+}
+function txPause() {
+  if (!tx.fetching) return;
+  tx.paused = !tx.paused;
+  if (tx.paused) tx.ctl.abort(); else tx.wake?.();
+  tx.ui?.status();
+}
+
 function txWorker() {
   if (tx.worker) return tx.worker;
   const url = URL.createObjectURL(new Blob([TX_WORKER], { type: "text/javascript" }));
@@ -194,7 +315,7 @@ const txCall = (msg, transfer = []) => new Promise((res, rej) => { tx.pending = 
 // Download fertig, Laufzeit baut die Sitzung auf (gilt auch beim Laden aus dem Gerätespeicher)
 function txPreparing() {
   const f = Object.entries(tx.dl);
-  return tx.busy && !tx.t0 && f.filter(([k]) => /\.onnx/.test(k)).length >= 2 && f.every(([, [l, t]]) => l >= t);
+  return tx.busy && !tx.t0 && !tx.fetching && f.filter(([k]) => /\.onnx/.test(k)).length >= 2 && f.every(([, [l, t]]) => l >= t);
 }
 function txKill() { tx.worker?.terminate(); tx.worker = null; tx.wdev = null; }
 // WebGPU-Gerät während der Erkennung verloren (Treiber/Browser hat die Grafikkarte zurückgesetzt)
@@ -229,18 +350,34 @@ async function txStart(o) {
       // Worker mit anderem Rechenweg verwerfen: eine verlorene WebGPU-Sitzung darf nicht in den nächsten Lauf hineinfunken
       if (tx.worker && tx.wdev !== d) txKill();
       const dt = txDtype(m, d, gpu?.f16);
-      const keys = "caches" in self ? (await (await caches.open(TX_CACHE)).keys()).map(r => r.url) : [];
-      const cached = txFiles(m, dt).every(u => keys.includes(u));
-      tx.phase = cached ? "Modell wird aus dem Gerätespeicher geladen …" : "Modell wird heruntergeladen …";
-      tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.dev = d; tx.prep = 0; tx.ui?.status();
-      if (!cached) navigator.storage?.persist?.().catch(() => {}); // Browser bitten, den Cache nicht automatisch zu räumen
-      await txCall({ type: "load", model: m.id, device: d, dtype: dt });
+      tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.dev = d; tx.prep = 0;
+      if ("caches" in self) {
+        const c = await caches.open(TX_CACHE), urls = txAllFiles(m, dt), missing = [];
+        for (const u of urls) if (!(await c.match(u))) missing.push(u);
+        if (missing.length) {
+          tx.phase = "Modell wird heruntergeladen …"; tx.ui?.status();
+          navigator.storage?.persist?.().catch(() => {}); // Browser bitten, den Cache nicht automatisch zu räumen
+          await txDownload(urls).catch(e => { e.dl = true; throw e; }); // Downloadfehler sind kein Grafikkartenproblem
+        }
+      }
+      for (let wait = 2000; ; wait = Math.min(wait * 2, 30000)) {
+        tx.phase = "Modell wird aus dem Gerätespeicher geladen …";
+        tx.dl = {}; tx.ui?.status();
+        try { await txCall({ type: "load", model: m.id, device: d, dtype: dt }); break; }
+        catch (e) {
+          // Die Bibliothek selbst kommt aus dem Netz: bei Ausfall warten statt abbrechen
+          if (tx.stop || !/konnte nicht geladen/.test(e.message)) throw e;
+          tx.phase = "Warte auf Internetverbindung …"; tx.ui?.status();
+          await txSleep(wait);
+          if (tx.stop) throw new Error("Abgebrochen.");
+        }
+      }
       tx.wdev = d;
     };
     try { await load(dev); }
     catch (e) {
       // Kein stiller Wechsel bei Turbo, auf dem Prozessor wären das andere Dateien mit über 1 GB
-      if (dev !== "webgpu" || /konnte nicht geladen/.test(e.message)) throw e;
+      if (tx.stop || e.dl || dev !== "webgpu" || /konnte nicht geladen/.test(e.message)) throw e;
       if (m.big) throw new Error(`${e.message} – Die Grafikkarte kann ${m.name} nicht ausführen. Wähle beim Rechenweg „Prozessor“ (über 1 GB Download, langsam) oder ein kleineres Modell.`);
       txKill(); dev = "wasm"; tx.sub = (/reagiert nicht/.test(e.message) ? "Grafikkarte reagiert nicht" : "Grafikkarte nicht nutzbar") + ", es wird der Prozessor verwendet.";
       await load(dev);
@@ -278,6 +415,8 @@ async function txStart(o) {
 }
 function txCancel() {
   tx.stop = true;
+  if (tx.fetching) tx.ctl.abort();
+  tx.wake?.();
   const p = tx.pending; tx.pending = null; txKill();
   p?.rej(new Error(tx.chunks.length ? "Abgebrochen, das bisherige Ergebnis bleibt erhalten." : "Abgebrochen."));
 }
@@ -311,6 +450,7 @@ function viewTranskription(app) {
       <div class="prog" id="txProg"><i id="txBar"></i></div>
       <p class="muted" id="txSub" style="font-size:13px;margin:6px 0 0"></p>
       <p class="err" id="txErr" style="font-size:14px;margin:6px 0 0"></p>
+      <div class="row" id="txDlCtl" style="margin-top:10px" hidden><button class="btn tonal" id="txPause">Pause</button></div>
     </div>
     <div class="card" id="txOut" hidden>
       <div class="row" style="justify-content:space-between"><h3 style="margin:0">Ergebnis</h3>
@@ -328,8 +468,13 @@ function viewTranskription(app) {
     </div>
     <p class="muted" style="font-size:13px">Während der Erkennung kannst du andere Werkzeuge öffnen, sie läuft weiter. Lass den Tab aber im Vordergrund, sonst bremst der Browser sie stark aus. Sehr lange Aufnahmen (mehrere Stunden) können auf Handys am Arbeitsspeicher scheitern.</p>`;
 
-  let keys = [];
+  let keys = [], partial = []; // fertige Dateien / Dateien mit angefangenem Download
   const gpuReady = txGpu();
+  const modelFiles = (m, dt) => txAllFiles(m, dt).filter(u => !u.startsWith(TX_RUNTIME));
+  // Fertig ist ein Modell erst, wenn alle seine Dateien für einen Rechenweg komplett im Speicher liegen
+  const ready = (m, dt) => modelFiles(m, dt).every(u => keys.includes(u));
+  const readyAny = m => [txDtype(m, "wasm"), txDtype(m, "webgpu", true), txDtype(m, "webgpu", false)].some(dt => ready(m, dt));
+  const begun = (m, dt) => txFiles(m, dt).some(u => keys.includes(u) || partial.includes(u));
   const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
   const saveOpts = () => store.set("tx.opts", o);
   // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
@@ -338,9 +483,8 @@ function viewTranskription(app) {
   const drawModels = () => {
     const dev = effDev();
     $("#txModel").innerHTML = TX_MODELS.map(m => {
-      const dt = txDtype(m, dev, tx.gpu?.f16);
-      const have = txFiles(m, dt).every(u => keys.includes(u));
-      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
+      const dt = txDtype(m, dev, tx.gpu?.f16), mb = "ca. " + Math.round(txSize(m, dt)) + " MB";
+      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${ready(m, dt) ? "gespeichert ✓" : begun(m, dt) ? "nicht fertig, " + mb : mb}</option>`;
     }).join("");
     modelInfo();
     $("#txDevInfo").textContent = tx.gpu === undefined ? "Grafikkarte wird geprüft …"
@@ -380,13 +524,19 @@ function viewTranskription(app) {
         else if (w > 10 && tx.dev === "webgpu" && !TX_MODELS.find(x => x.name === tx.model)?.big) sub = `Hängt die Grafikkarte, wird nach 1 Minute automatisch der Prozessor genommen.` + (sub ? " · " + sub : "");
         pct = 1;
       }
-      else sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
+      else {
+        sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
+        if (tx.paused) { $("#txPhase").textContent = "Download pausiert"; sub += " · Geht an dieser Stelle weiter."; }
+        else if (tx.netWait) { $("#txPhase").textContent = "Warte auf Internetverbindung …"; sub += " · Der Download macht automatisch an dieser Stelle weiter."; }
+      }
     } else if (tx.busy && tx.t0 && tx.done > (tx.d0 || 0)) {
       pct = tx.done;
       const el = (performance.now() - tx.t0) / 1000;
       sub = `noch ca. ${txClock(el * (1 - tx.done) / (tx.done - (tx.d0 || 0)))}` + (sub ? " · " + sub : "");
     } else if (tx.busy && tx.t0) { pct = 0; sub = "Erster Abschnitt läuft, danach gibt es eine Restzeit." + (sub ? " · " + sub : ""); }
     $("#txSub").textContent = sub;
+    $("#txDlCtl").hidden = !tx.fetching;
+    $("#txPause").textContent = tx.paused ? "Fortsetzen" : "Pause";
     $("#txProg").hidden = pct == null;
     $("#txBar").style.width = ((pct || 0) * 100).toFixed(1) + "%";
     $("#txPct").textContent = pct == null ? "" : Math.floor(pct * 100) + " %";
@@ -409,16 +559,20 @@ function viewTranskription(app) {
     if (!$("#txCache")) return;
     if (!groups) { el.textContent = "Dein Browser stellt keinen Speicher für Modelle bereit. Sie werden dann bei jedem Aufruf neu geladen."; return; }
     keys = Object.values(groups).flatMap(g => g.reqs.map(r => r.url));
+    partial = Object.values(groups).flatMap(g => g.preqs.map(r => r.url.split("?")[0]));
     drawModels();
     const est = await navigator.storage?.estimate?.().catch(() => null);
     const persisted = await navigator.storage?.persisted?.().catch(() => null);
     const ids = Object.keys(groups).filter(g => g !== "runtime" && g !== "other");
     const rows = ids.map(g => {
-      const m = TX_MODELS.find(x => x.id === g);
-      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${fmtBytes(groups[g].size)}</small></div>
+      const m = TX_MODELS.find(x => x.id === g), { size, part } = groups[g];
+      let info = fmtBytes(size + part);
+      if (m && readyAny(m)) info = `<span class="badge ok">fertig</span> ${fmtBytes(size)}${part ? ` · dazu ${fmtBytes(part)} angefangen` : ""}`;
+      else if (m) info = `<span class="badge warn">nicht fertig</span> ${fmtBytes(size + part)} von ca. ${fmtBytes(Math.max(size + part, txSize(m, txDtype(m, effDev(), tx.gpu?.f16)) * 1e6))} geladen · geht beim nächsten Transkribieren mit diesem Modell weiter`;
+      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${info}</small></div>
         <button class="iconbtn" data-del="${esc(g)}" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`;
     });
-    const other = ["runtime", "other"].filter(g => groups[g]).reduce((s, g) => s + groups[g].size, 0);
+    const other = ["runtime", "other"].filter(g => groups[g]).reduce((s, g) => s + groups[g].size + groups[g].part, 0);
     if (other) rows.push(`<div class="list-item"><div class="grow"><b style="color:var(--text)">Laufzeit (ONNX Runtime)</b><small>${fmtBytes(other)}</small></div>
       <button class="iconbtn" data-del="runtime" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`);
     el.innerHTML = (rows.length ? rows.join("") : "<p style='margin:0'>Noch kein Modell gespeichert.</p>")
@@ -467,6 +621,7 @@ function viewTranskription(app) {
     txStart({ ...o, model: cur() });
   };
   $("#txTs").onchange = result;
+  $("#txPause").onclick = txPause;
   $("#txExp").onclick = e => {
     const f = e.target.closest("button")?.dataset.f; if (!f) return;
     const base = (tx.name || "Transkript").replace(/\.[^.]+$/, "");
@@ -481,9 +636,9 @@ function viewTranskription(app) {
     const m = TX_MODELS.find(x => x.id === g);
     if (!confirm(`${m ? "Whisper " + m.name : "Laufzeit"} vom Gerät löschen? Beim nächsten Mal wird es neu heruntergeladen.`)) return;
     txKill(); // geladenes Modell aus dem Arbeitsspeicher werfen
-    const groups = await txCacheList(), c = await caches.open(TX_CACHE);
-    const del = g === "runtime" ? [...(groups.runtime?.reqs || []), ...(groups.other?.reqs || [])] : groups[g]?.reqs || [];
-    await Promise.all(del.map(r => c.delete(r)));
+    const groups = await txCacheList(), c = await caches.open(TX_CACHE), pc = await caches.open(TX_PARTS);
+    const sel = g === "runtime" ? [groups.runtime, groups.other] : [groups[g]];
+    await Promise.all(sel.filter(Boolean).flatMap(x => [...x.reqs.map(r => c.delete(r)), ...x.preqs.map(r => pc.delete(r))]));
     toast("Gelöscht"); cache();
   };
 
