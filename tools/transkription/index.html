@@ -23,6 +23,7 @@
 #txDev{display:flex;max-width:100%}
 #txDev button{flex:1;padding:8px 10px}
 #txDev button:disabled{opacity:.4;cursor:default}
+.badge.warn{color:var(--warn)}
 </style>
 <script>var ROOT="../../";</script>
 <script src="../../assets/common.js"></script>
@@ -267,7 +268,7 @@ async function txDownload(urls) {
       const file = url.replace(/^.*\/resolve\/main\/|^.*\/dist\//, "");
       for (;;) {
         if (tx.stop) throw new Error(TX_DL_STOP);
-        if (tx.paused) { tx.ui?.status(); await txSleep(0); continue; }
+        if (tx.paused) { tx.ui?.status(); tx.ui?.cache(); await txSleep(0); continue; }
         try {
           await txFetchFile(url, (l, t) => { tx.dl[file] = [l, t]; });
           tx.netWait = false; wait = 2000;
@@ -467,8 +468,13 @@ function viewTranskription(app) {
     </div>
     <p class="muted" style="font-size:13px">Während der Erkennung kannst du andere Werkzeuge öffnen, sie läuft weiter. Lass den Tab aber im Vordergrund, sonst bremst der Browser sie stark aus. Sehr lange Aufnahmen (mehrere Stunden) können auf Handys am Arbeitsspeicher scheitern.</p>`;
 
-  let keys = [];
+  let keys = [], partial = []; // fertige Dateien / Dateien mit angefangenem Download
   const gpuReady = txGpu();
+  const modelFiles = (m, dt) => txAllFiles(m, dt).filter(u => !u.startsWith(TX_RUNTIME));
+  // Fertig ist ein Modell erst, wenn alle seine Dateien für einen Rechenweg komplett im Speicher liegen
+  const ready = (m, dt) => modelFiles(m, dt).every(u => keys.includes(u));
+  const readyAny = m => [txDtype(m, "wasm"), txDtype(m, "webgpu", true), txDtype(m, "webgpu", false)].some(dt => ready(m, dt));
+  const begun = (m, dt) => txFiles(m, dt).some(u => keys.includes(u) || partial.includes(u));
   const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
   const saveOpts = () => store.set("tx.opts", o);
   // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
@@ -477,9 +483,8 @@ function viewTranskription(app) {
   const drawModels = () => {
     const dev = effDev();
     $("#txModel").innerHTML = TX_MODELS.map(m => {
-      const dt = txDtype(m, dev, tx.gpu?.f16);
-      const have = txFiles(m, dt).every(u => keys.includes(u));
-      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${have ? "gespeichert ✓" : "ca. " + Math.round(txSize(m, dt)) + " MB"}</option>`;
+      const dt = txDtype(m, dev, tx.gpu?.f16), mb = "ca. " + Math.round(txSize(m, dt)) + " MB";
+      return `<option value="${m.id}" ${cur() === m.id ? "selected" : ""}>${m.name}${TX_BEST[dev] === m.id ? " (empfohlen)" : ""} · ${ready(m, dt) ? "gespeichert ✓" : begun(m, dt) ? "nicht fertig, " + mb : mb}</option>`;
     }).join("");
     modelInfo();
     $("#txDevInfo").textContent = tx.gpu === undefined ? "Grafikkarte wird geprüft …"
@@ -553,15 +558,18 @@ function viewTranskription(app) {
     try { groups = await txCacheList(); } catch { groups = null; }
     if (!$("#txCache")) return;
     if (!groups) { el.textContent = "Dein Browser stellt keinen Speicher für Modelle bereit. Sie werden dann bei jedem Aufruf neu geladen."; return; }
-    keys = Object.values(groups).flatMap(g => g.reqs.map(r => r.url)); // nur fertige Dateien
+    keys = Object.values(groups).flatMap(g => g.reqs.map(r => r.url));
+    partial = Object.values(groups).flatMap(g => g.preqs.map(r => r.url.split("?")[0]));
     drawModels();
     const est = await navigator.storage?.estimate?.().catch(() => null);
     const persisted = await navigator.storage?.persisted?.().catch(() => null);
     const ids = Object.keys(groups).filter(g => g !== "runtime" && g !== "other");
     const rows = ids.map(g => {
-      const m = TX_MODELS.find(x => x.id === g);
-      const { size, part } = groups[g];
-      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${[size ? fmtBytes(size) : "", part ? fmtBytes(part) + " angefangen, wird beim nächsten Start fortgesetzt" : ""].filter(Boolean).join(" · ")}</small></div>
+      const m = TX_MODELS.find(x => x.id === g), { size, part } = groups[g];
+      let info = fmtBytes(size + part);
+      if (m && readyAny(m)) info = `<span class="badge ok">fertig</span> ${fmtBytes(size)}${part ? ` · dazu ${fmtBytes(part)} angefangen` : ""}`;
+      else if (m) info = `<span class="badge warn">nicht fertig</span> ${fmtBytes(size + part)} von ca. ${fmtBytes(Math.max(size + part, txSize(m, txDtype(m, effDev(), tx.gpu?.f16)) * 1e6))} geladen · geht beim nächsten Transkribieren mit diesem Modell weiter`;
+      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${info}</small></div>
         <button class="iconbtn" data-del="${esc(g)}" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`;
     });
     const other = ["runtime", "other"].filter(g => groups[g]).reduce((s, g) => s + groups[g].size + groups[g].part, 0);
