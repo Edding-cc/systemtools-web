@@ -92,7 +92,7 @@ self.onmessage = async ({ data: m }) => {
       loaded = key;
       postMessage({ type: "ok" });
     } else if (m.type === "run") {
-      const a = m.audio, n = a.length;
+      const a = m.audio, n = a.length, base = m.base || 0; // base: Position dieses Ausschnitts in der Gesamtaufnahme
       // Stille überspringen, Whisper erfindet dort sonst gern Text
       const thr = Math.min(0.005 ** 2, loudest(a, 0, n) * 0.03 ** 2);
       let pos = 0;
@@ -103,14 +103,14 @@ self.onmessage = async ({ data: m }) => {
         // Stille am Anfang abschneiden, sonst setzt Whisper den ersten Zeitstempel zu früh
         while (pos + F <= end && energy(a, pos) < thr) pos += F;
         if (end - pos >= F && loudest(a, pos, end) >= thr) {
-          const seg = a.subarray(pos, end), off = pos / SR, len = seg.length / SR;
+          const seg = a.subarray(pos, end), off = (base + pos) / SR, len = seg.length / SR;
           const out = await asr(seg, { language: m.language, task: "transcribe", return_timestamps: true });
           chunks = (out.chunks?.length ? out.chunks : [{ timestamp: [0, len], text: out.text }])
             .map(c => ({ s: off + (c.timestamp[0] ?? 0), e: off + Math.min(c.timestamp[1] ?? len, len), t: c.text.trim() }))
             .filter(c => c.t);
         }
         pos = end;
-        postMessage({ type: "part", chunks, done: pos / n });
+        postMessage({ type: "part", chunks, pos: base + pos });
       }
       postMessage({ type: "ok" });
     }
@@ -180,7 +180,7 @@ function txWorker() {
   tx.worker.onmessage = ({ data: m }) => {
     if (m.type === "dl") { tx.dl[m.file] = [m.loaded, m.total]; tx.ui?.status(); }
     else if (m.type === "part") {
-      tx.chunks.push(...m.chunks); tx.done = m.done;
+      tx.chunks.push(...m.chunks); tx.pos = m.pos; tx.done = tx.total ? m.pos / tx.total : 0;
       store.set("tx.last", { name: tx.name, chunks: tx.chunks, model: tx.model });
       tx.ui?.status(); tx.ui?.result();
     }
@@ -196,7 +196,9 @@ function txPreparing() {
   const f = Object.entries(tx.dl);
   return tx.busy && !tx.t0 && f.filter(([k]) => /\.onnx/.test(k)).length >= 2 && f.every(([, [l, t]]) => l >= t);
 }
-function txKill() { tx.worker?.terminate(); tx.worker = null; }
+function txKill() { tx.worker?.terminate(); tx.worker = null; tx.wdev = null; }
+// WebGPU-Gerät während der Erkennung verloren (Treiber/Browser hat die Grafikkarte zurückgesetzt)
+const txGpuLost = msg => /device\]? is lost|devicelost|mapasync/i.test(msg || "");
 
 async function txStart(o) {
   const m = TX_MODELS.find(x => x.id === o.model);
@@ -224,6 +226,8 @@ async function txStart(o) {
     let dev = o.dev === "auto" ? (gpu ? "webgpu" : "wasm") : o.dev;
     if (dev === "webgpu" && !gpu) dev = "wasm";
     const load = async d => {
+      // Worker mit anderem Rechenweg verwerfen: eine verlorene WebGPU-Sitzung darf nicht in den nächsten Lauf hineinfunken
+      if (tx.worker && tx.wdev !== d) txKill();
       const dt = txDtype(m, d, gpu?.f16);
       const keys = "caches" in self ? (await (await caches.open(TX_CACHE)).keys()).map(r => r.url) : [];
       const cached = txFiles(m, dt).every(u => keys.includes(u));
@@ -231,6 +235,7 @@ async function txStart(o) {
       tx.dl = {}; tx.expect = txSize(m, dt) * 1e6; tx.dev = d; tx.prep = 0; tx.ui?.status();
       if (!cached) navigator.storage?.persist?.().catch(() => {}); // Browser bitten, den Cache nicht automatisch zu räumen
       await txCall({ type: "load", model: m.id, device: d, dtype: dt });
+      tx.wdev = d;
     };
     try { await load(dev); }
     catch (e) {
@@ -242,12 +247,29 @@ async function txStart(o) {
     }
     if (tx.stop) throw new Error("Abgebrochen.");
     tx.phase = `Transkribiere ${txClock(secs)} (${m.name}, ${dev === "webgpu" ? "Grafikkarte" : "Prozessor"}) …`;
-    tx.t0 = performance.now(); tx.dl = {}; tx.ui?.status();
-    await txCall({ type: "run", audio, language: o.lang }, [audio.buffer]);
+    tx.t0 = performance.now(); tx.dl = {}; tx.total = audio.length; tx.pos = 0; tx.d0 = 0; tx.ui?.status();
+    try {
+      // Auf der Grafikkarte eine Kopie schicken, damit bei Ausfall auf dem Prozessor weitergerechnet werden kann
+      await txCall({ type: "run", audio: dev === "webgpu" ? audio.slice() : audio, language: o.lang }, dev === "webgpu" ? [] : [audio.buffer]);
+    } catch (e) {
+      if (dev !== "webgpu" || tx.stop || !txGpuLost(e.message)) throw e;
+      txKill();
+      if (m.big) throw new Error(`Die Grafikkarte ist während der Erkennung ausgefallen (WebGPU-Gerät verloren). ${tx.chunks.length ? "Das bisherige Ergebnis bleibt erhalten. " : ""}Wähle ein kleineres Modell oder beim Rechenweg „Prozessor“ (über 1 GB Download, langsam).`);
+      dev = "wasm"; tx.sub = "Grafikkarte ist ausgefallen, es geht auf dem Prozessor weiter.";
+      tx.t0 = 0; // Ladeanzeige statt Restzeit, solange das Prozessor-Modell lädt
+      await load(dev);
+      if (tx.stop) throw new Error("Abgebrochen.");
+      tx.t0 = performance.now(); tx.d0 = tx.done || 0;
+      const start = tx.pos || 0, rest = audio.slice(start);
+      tx.phase = `Transkribiere ${txClock(secs)} (${m.name}, Prozessor) …`;
+      tx.dl = {}; tx.ui?.status();
+      await txCall({ type: "run", audio: rest, base: start, language: o.lang }, [rest.buffer]);
+    }
     tx.phase = `Fertig nach ${txClock((performance.now() - tx.t0) / 1000)}`;
     if (!tx.chunks.length) tx.error = "Keine Sprache erkannt.";
   } catch (e) {
-    tx.phase = ""; tx.error = e.message;
+    tx.phase = ""; tx.error = txGpuLost(e.message) ? "Die Grafikkarte ist während der Erkennung ausgefallen (WebGPU-Gerät verloren). Bitte erneut starten oder beim Rechenweg „Prozessor“ wählen." : e.message;
+    if (!tx.stop) txKill(); // nach Fehler frisch starten, kein halb kaputter Worker
   } finally {
     clearInterval(tick);
     tx.busy = false; tx.ui?.status(); tx.ui?.result(); tx.ui?.cache();
@@ -359,10 +381,10 @@ function viewTranskription(app) {
         pct = 1;
       }
       else sub = `${fmtBytes(got)} von ca. ${fmtBytes(tot)}` + (sub ? " · " + sub : "");
-    } else if (tx.busy && tx.t0 && tx.done) {
+    } else if (tx.busy && tx.t0 && tx.done > (tx.d0 || 0)) {
       pct = tx.done;
       const el = (performance.now() - tx.t0) / 1000;
-      sub = `noch ca. ${txClock(el * (1 - tx.done) / tx.done)}` + (sub ? " · " + sub : "");
+      sub = `noch ca. ${txClock(el * (1 - tx.done) / (tx.done - (tx.d0 || 0)))}` + (sub ? " · " + sub : "");
     } else if (tx.busy && tx.t0) { pct = 0; sub = "Erster Abschnitt läuft, danach gibt es eine Restzeit." + (sub ? " · " + sub : ""); }
     $("#txSub").textContent = sub;
     $("#txProg").hidden = pct == null;
