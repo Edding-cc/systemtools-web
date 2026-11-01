@@ -44,7 +44,7 @@ function viewGeraeteinfo(app) {
     <div class="card"><h3>Browser</h3>${kv({ "User-Agent": navigator.userAgent, "Sprachen": (navigator.languages || [navigator.language]).join(", "), "Zeitzone": Intl.DateTimeFormat().resolvedOptions().timeZone, "Cookies": navigator.cookieEnabled ? "an" : "aus", "Do Not Track": navigator.doNotTrack === "1" ? "an" : "aus", "Als App installiert": mq("(display-mode: standalone)") ? "ja" : "nein", "Farbschema": mq("(prefers-color-scheme: dark)") ? "dunkel" : "hell", "Weniger Bewegung": mq("(prefers-reduced-motion: reduce)") ? "ja" : "nein" })}</div>
     <div class="card"><h3>Speicher dieser Seite</h3><div id="sto">–</div></div>
     <button class="btn tonal" id="cpAll">Alles kopieren</button>`;
-  const devInfo = { "Prozessorkerne": navigator.hardwareConcurrency, "Arbeitsspeicher": navigator.deviceMemory ? "≥ " + navigator.deviceMemory + " GB (vom Browser gerundet, max. 8)" : null, "Plattform": navigator.userAgentData?.platform || navigator.platform, "Touchpunkte": navigator.maxTouchPoints, "Mobilgerät": navigator.userAgentData ? (navigator.userAgentData.mobile ? "ja" : "nein") : null };
+  const devInfo = { "Online": navigator.onLine ? "ja" : "nein", "Prozessorkerne": navigator.hardwareConcurrency, "Arbeitsspeicher": navigator.deviceMemory ? "≥ " + navigator.deviceMemory + " GB (vom Browser gerundet, max. 8)" : null, "Plattform": navigator.userAgentData?.platform || navigator.platform, "Touchpunkte": navigator.maxTouchPoints, "Mobilgerät": navigator.userAgentData ? (navigator.userAgentData.mobile ? "ja" : "nein") : null };
   const drawDev = () => $("#dev").innerHTML = kv(devInfo);
   drawDev();
   navigator.userAgentData?.getHighEntropyValues?.(["model", "platformVersion", "architecture", "bitness", "fullVersionList"]).then(h => {
@@ -59,7 +59,16 @@ function viewGeraeteinfo(app) {
     "Mehrere Bildschirme": s.isExtended != null ? (s.isExtended ? "ja" : "nein") : null, "Bildwiederholrate": "im Werkzeug „Bildrate (FPS)“"
   });
   drawScr(); addEventListener("resize", drawScr); onLeave(() => removeEventListener("resize", drawScr));
-  navigator.storage?.estimate?.().then(e => $("#sto").innerHTML = kv({ "Belegt": fmtBytes(e.usage), "Verfügbar (Kontingent)": fmtBytes(e.quota) })).catch(() => {});
+  // Einträge dieser Web-App im lokalen Speicher (Präfix "st.") plus Kontingent, falls der Browser es meldet
+  const local = (() => {
+    try {
+      let cnt = 0, chars = 0;
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith("st.")) { cnt++; chars += k.length + (localStorage.getItem(k) || "").length; } }
+      return { "Lokaler Speicher": "verfügbar", "Einträge dieser Web-App": cnt, "Davon belegt (ca.)": fmtBytes(chars * 2) };
+    } catch { return { "Lokaler Speicher": "nicht verfügbar" }; }
+  })();
+  $("#sto").innerHTML = kv(local);
+  navigator.storage?.estimate?.().then(e => $("#sto").innerHTML = kv({ ...local, "Belegt (gesamt)": fmtBytes(e.usage), "Verfügbar (Kontingent)": fmtBytes(e.quota) })).catch(() => {});
   $("#cpAll").onclick = () => copy($$(".card", app).map(c => c.querySelector("h3").textContent + "\n" + $$("dt", c).map(dt => `  ${dt.textContent}: ${dt.nextElementSibling.textContent}`).join("\n")).join("\n\n"));
 }
 

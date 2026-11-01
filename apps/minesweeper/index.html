@@ -52,10 +52,10 @@
 <main class="wrap" id="app">
   <div class="chips" id="lvl"><button data-l="0">Leicht 9×9</button><button data-l="1">Mittel 10×14</button><button data-l="2">Schwer 12×18</button></div>
   <div class="stats"><div><b id="mLeft">0</b><span>Minen übrig</span></div><div><b id="mTime">0</b><span>Sekunden</span></div><div><b id="mBest">–</b><span>Bestzeit</span></div></div>
-  <div id="ms" role="grid" aria-label="Spielfeld"></div>
+  <div id="ms" data-fit="1" role="grid" aria-label="Spielfeld"></div>
   <p class="msg" id="mMsg" role="status"></p>
   <div class="ctl"><button id="mMode" class="tonal" aria-pressed="false">Modus: Aufdecken</button><button id="mNew" class="ac">Neues Spiel</button></div>
-  <p class="muted" style="font-size:14px">Antippen deckt auf, im Flaggenmodus wird markiert. Lange drücken oder Rechtsklick setzt immer eine Flagge. Tippst du auf eine Zahl, deren Flaggen vollständig sind, werden die übrigen Nachbarn aufgedeckt. Der erste Zug ist immer sicher.</p>
+  <p class="muted help" style="font-size:14px">Antippen deckt auf, im Flaggenmodus wird markiert. Lange drücken oder Rechtsklick setzt immer eine Flagge. Tippst du auf eine Zahl, deren Flaggen vollständig sind, werden die übrigen Nachbarn aufgedeckt. Der erste Zug ist immer sicher.</p>
 </main>
 <script>
 (function () {
@@ -85,7 +85,7 @@ function newGame() {
   const L = LV[lv], n = L.w * L.h;
   clearInterval(timer); started = over = false; opened = flags = 0;
   cells = Array.from({ length: n }, () => ({ m: false, n: 0, o: false, f: false }));
-  board.style.setProperty("--w", L.w);
+  board.style.setProperty("--w", L.w); board.dataset.fit = L.h / L.w; requestAnimationFrame(fitBoards);
   board.innerHTML = cells.map((_, i) => `<div class="c" data-i="${i}" role="gridcell"></div>`).join("");
   els = $$(".c", board);
   $("#mTime").textContent = "0"; $("#mMsg").textContent = "";

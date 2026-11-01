@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Galgenmännchen · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#gPic{display:block;width:150px;height:150px;margin:0 auto;color:var(--text)}
+#gPic .p{display:none}
+#gPic .p.on{display:inline}
+#gPic .p.last{color:var(--err);stroke:var(--err)}
+#gCat{margin:4px 0 0;font-size:14px}
+#gWord{text-align:center;font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.25em;margin:8px 0 4px;overflow-wrap:anywhere}
+#gMsg{margin-bottom:4px}
+#gKb{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:8px 0 12px;user-select:none;-webkit-user-select:none}
+#gKb button{height:44px;border:0;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer;padding:0;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+#gKb button.hit{background:var(--accent-soft)}
+#gKb button.miss{background:none;box-shadow:inset 0 0 0 1px var(--border)}
+#gKb button:disabled{opacity:.3;cursor:default}
+#gTwoBox input{margin-bottom:2px}
+html.fs #gPic{width:110px;height:110px}
+html.fs #gKb{gap:4px}
+html.fs #gKb button{height:38px}
+html.fs #gWord{font-size:22px;margin:2px 0}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Galgenmännchen</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="stats"><div><b id="gW">0</b><span>Gewonnen</span></div><div><b id="gL">0</b><span>Verloren</span></div><div><b id="gS">0</b><span>Serie</span></div></div>
+  <svg id="gPic" viewBox="0 0 140 150" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" aria-hidden="true">
+    <path class="p" d="M10 140h80"/><path class="p" d="M30 140V10"/><path class="p" d="M30 10h70"/><path class="p" d="M100 10v20"/>
+    <circle class="p" cx="100" cy="42" r="12"/><path class="p" d="M100 54v40"/><path class="p" d="M100 64l-18 15"/><path class="p" d="M100 64l18 15"/>
+    <path class="p" d="M100 94l-15 26"/><path class="p" d="M100 94l15 26"/>
+  </svg>
+  <p class="center muted" id="gCat"></p>
+  <div id="gWord" aria-live="polite"></div>
+  <p class="msg" id="gMsg" role="status"></p>
+  <div id="gKb" aria-label="Buchstaben"></div>
+  <div class="ctl c2"><button id="gNew" class="ac">Neues Wort</button><button id="gTwo" class="tonal" aria-expanded="false">Wort vorgeben</button></div>
+  <div class="card" id="gTwoBox" hidden>
+    <h3>Wort für deine Mitspielerin oder deinen Mitspieler</h3>
+    <label class="fld" for="gIn">Wort (3 bis 20 Buchstaben, wird verdeckt eingegeben)</label>
+    <input type="password" id="gIn" autocomplete="off" maxlength="20">
+    <label class="fld" for="gHint">Hinweis (optional)</label>
+    <input type="text" id="gHint" maxlength="30" autocomplete="off">
+    <div class="row mt"><button class="btn" id="gTwoGo">Starten</button><button class="btn text" id="gTwoX">Abbrechen</button></div>
+  </div>
+  <p class="muted help" style="font-size:14px">Errate das Wort Buchstabe für Buchstabe. Nach zehn Fehlern ist die Runde verloren. Funktioniert auch mit der Tastatur.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Galgenmännchen
+   ========================================================= */
+const WORDS = {
+  "Tier": "HUND KATZE ELEFANT GIRAFFE PINGUIN SCHMETTERLING EICHHÖRNCHEN KROKODIL DELFIN SCHILDKRÖTE PAPAGEI KÄNGURU NASHORN FLEDERMAUS IGEL MARIENKÄFER WALROSS ZEBRA HAMSTER EULE REGENWURM SEEPFERDCHEN",
+  "Essen und Trinken": "KARTOFFEL APFELSTRUDEL BREZEL PFANNKUCHEN ERDBEERE SCHOKOLADE KÄSEBROT SPAGHETTI GURKENSALAT ZITRONE HONIGMELONE MARMELADE BUTTERMILCH KAKAO WAFFEL BLAUBEERE",
+  "Zuhause": "KÜHLSCHRANK WASCHMASCHINE BÜCHERREGAL SCHREIBTISCH BADEWANNE KLEIDERSCHRANK STAUBSAUGER TEPPICH FENSTERBANK GLÜHBIRNE KOPFKISSEN TÜRKLINGEL BRIEFKASTEN",
+  "Natur und Wetter": "REGENBOGEN GEWITTER SONNENBLUME VULKAN WASSERFALL SCHNEEFLOCKE TANNENZAPFEN GLETSCHER LÖWENZAHN NEBEL WIRBELSTURM KASTANIE",
+  "Technik": "COMPUTER TASTATUR BILDSCHIRM DRUCKER LAUTSPRECHER LADEKABEL ROUTER FESTPLATTE PASSWORT VERSCHLÜSSELUNG FIREWALL DATENSCHUTZ SERVER BROWSER SMARTPHONE",
+  "Sport und Freizeit": "TISCHTENNIS SCHWIMMBAD FAHRRAD SKATEBOARD WANDERUNG ZELTLAGER SCHACHBRETT TRAMPOLIN HANDBALL KLETTERWAND PUZZLE",
+  "Verkehr": "EISENBAHN FLUGZEUG HUBSCHRAUBER SEGELBOOT MOTORRAD AMPEL TANKSTELLE BAHNHOF ROLLTREPPE KREISVERKEHR",
+  "Beruf": "BÄCKERIN GÄRTNER ÄRZTIN PILOT TISCHLERIN FRISEUR LEHRER ASTRONAUTIN SCHORNSTEINFEGER BIBLIOTHEKARIN"
+};
+const ALL = Object.entries(WORDS).flatMap(([c, list]) => list.split(" ").map(w => [w, c]));
+const KEYS = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß"], MAX = 10;
+const st = Object.assign({ w: 0, l: 0, s: 0 }, store.get("hang.stats", {}));
+const recent = store.get("hang.recent", []);
+let word = "", cat = "", guessed = {}, wrong = 0, over = false, custom = false;
+const up = ch => ch === "ß" ? ch : ch.toUpperCase();
+
+function pick() {
+  let w;
+  do { w = ALL[rnd(ALL.length)]; } while (recent.includes(w[0]) && recent.length < ALL.length);
+  recent.push(w[0]); if (recent.length > 40) recent.shift();
+  store.set("hang.recent", recent);
+  return w;
+}
+function start(w, c, isCustom) {
+  word = w; cat = c; custom = !!isCustom; guessed = {}; wrong = 0; over = false;
+  $("#gMsg").textContent = ""; showTwo(false);
+  $("#gKb").innerHTML = KEYS.map(k => `<button data-k="${k}">${k}</button>`).join("");
+  render();
+}
+const solved = () => [...word].every(ch => guessed[ch]);
+function render() {
+  const lose = over && !solved();
+  $$("#gPic .p").forEach((p, k) => p.setAttribute("class", "p" + (k < wrong ? " on" : "") + (lose && k === wrong - 1 ? " last" : "")));
+  $("#gWord").textContent = [...word].map(ch => guessed[ch] || over ? ch : "_").join("");
+  $("#gCat").textContent = cat ? "Hinweis: " + cat : (custom ? "Vorgegebenes Wort" : "");
+  $$("#gKb button").forEach(b => {
+    const ch = b.dataset.k;
+    b.disabled = over || !!guessed[ch];
+    b.className = guessed[ch] ? (word.includes(ch) ? "hit" : "miss") : "";
+  });
+  $("#gW").textContent = st.w; $("#gL").textContent = st.l; $("#gS").textContent = st.s;
+}
+function guess(ch) {
+  if (over || !word || guessed[ch]) return;
+  guessed[ch] = true;
+  if (!word.includes(ch)) wrong++;
+  if (solved()) {
+    over = true;
+    if (!custom) { st.w++; st.s++; store.set("hang.stats", st); }
+    $("#gMsg").textContent = wrong ? "Richtig! Mit " + wrong + (wrong === 1 ? " Fehler" : " Fehlern") : "Richtig – ganz ohne Fehler!";
+  } else if (wrong >= MAX) {
+    over = true;
+    if (!custom) { st.l++; st.s = 0; store.set("hang.stats", st); }
+    $("#gMsg").textContent = "Verloren. Gesucht war: " + word;
+  }
+  render();
+}
+function showTwo(on) {
+  $("#gTwoBox").hidden = !on;
+  $("#gTwo").setAttribute("aria-expanded", on);
+  if (on) { $("#gIn").value = ""; $("#gHint").value = ""; $("#gIn").focus(); }
+}
+$("#gKb").onclick = e => { const b = e.target.closest("button"); if (b && !b.disabled) guess(b.dataset.k); };
+const onKey = e => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (!e.key || e.key.length !== 1) return;
+  const ch = up(e.key);
+  if (KEYS.includes(ch)) { e.preventDefault(); guess(ch); }
+};
+addEventListener("keydown", onKey);
+onLeave(() => removeEventListener("keydown", onKey));
+$("#gNew").onclick = () => { const w = pick(); start(w[0], w[1], false); };
+$("#gTwo").onclick = () => showTwo($("#gTwoBox").hidden);
+$("#gTwoX").onclick = () => showTwo(false);
+$("#gIn").onkeydown = $("#gHint").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#gTwoGo").click(); } };
+$("#gTwoGo").onclick = () => {
+  const v = [...$("#gIn").value.replace(/\s+/g, "")].map(up).join("");
+  if (![...v].every(ch => KEYS.includes(ch))) { toast("Nur Buchstaben A–Z, Ä, Ö, Ü und ß"); return; }
+  if (v.length < 3) { toast("Mindestens 3 Buchstaben"); return; }
+  $("#gIn").value = "";
+  start(v, $("#gHint").value.trim(), true);
+};
+$("#gNew").onclick();
+})();
+</script>
+</body>
+</html>

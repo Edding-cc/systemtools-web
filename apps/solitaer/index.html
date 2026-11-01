@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solitär · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);padding:0;touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#sb{position:relative;margin:0 auto 12px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#sb .slot,#sb .cd{position:absolute;border-radius:6px}
+#sb .slot{text-align:center;font-size:20px;cursor:pointer;box-shadow:inset 0 0 0 2px var(--border);color:var(--muted)}
+#sb .cd{background:#fff;color:#111;box-shadow:0 0 0 1px rgba(0,0,0,.35);cursor:pointer;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#sb .cd.red{color:#c62828}
+#sb .cd .r{position:absolute;left:3px;top:1px;font-weight:700;line-height:1;white-space:nowrap}
+#sb .cd .m{position:absolute;right:3px;bottom:2px;line-height:1}
+#sb .cd.down{background-color:color-mix(in srgb,var(--accent) 80%,#000);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.12) 0,rgba(255,255,255,.12) 3px,transparent 3px,transparent 7px);box-shadow:0 0 0 1px rgba(255,255,255,.35) inset,0 0 0 1px rgba(0,0,0,.4)}
+#sb .cd.sel{box-shadow:0 0 0 3px #f4c430}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Solitär</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="sDraw"><button data-d="1">1 Karte ziehen</button><button data-d="3">3 Karten ziehen</button></div>
+  <div class="stats"><div><b id="sMoves">0</b><span>Züge</span></div><div><b id="sTime">00:00</b><span>Zeit</span></div><div><b id="sBest">–</b><span>Bestzeit</span></div><div><b id="sWon">0</b><span>Gewonnen</span></div></div>
+  <div id="sb" aria-label="Spielfeld"></div>
+  <p class="msg" id="sMsg" role="status"></p>
+  <div class="ctl"><button id="sUndo" class="tonal">Zurück</button><button id="sAuto" class="tonal">Ablegen</button><button id="sNew" class="ac">Neues Spiel</button></div>
+  <p class="muted help" style="font-size:14px">Ziel: alle Karten nach Farbe von Ass bis König auf die vier Ablagen oben rechts. In den Spalten abwechselnd rot und schwarz absteigend anlegen; auf leere Spalten nur Könige. Eine Karte <b>antippen</b> legt sie automatisch an die beste Stelle. Geht das nicht, wird sie markiert – dann das Ziel antippen. „Ablegen“ bringt alle passenden Karten auf die Ablagen. Das Spiel wird gespeichert.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Solitär (Klondike)
+   ========================================================= */
+const SUIT = ["♠", "♥", "♦", "♣"], RANK = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "B", "D", "K"];
+let draw = store.get("sol.draw", 1);
+const stats = store.get("sol.stats", { won: 0, best: {} });
+if (draw !== 1 && draw !== 3) draw = 1;
+let G, hist = [], sel = null, cw = 0, ch = 0, timer = 0, finT = 0;
+const gap = 4;
+onLeave(() => { clearInterval(timer); clearTimeout(finT); if (G) save(); });
+
+const red = c => c.s === 1 || c.s === 2;
+const top = a => a[a.length - 1];
+function newGame() {
+  const deck = [];
+  for (let s = 0; s < 4; s++) for (let r = 1; r <= 13; r++) deck.push({ s, r, up: false });
+  shuffle(deck);
+  G = { stock: [], waste: [], f: [[], [], [], []], t: [[], [], [], [], [], [], []], moves: 0, time: 0, won: false, started: false };
+  let k = 0;
+  for (let i = 0; i < 7; i++) { for (let r = 0; r <= i; r++) G.t[i].push(deck[k++]); G.t[i][i].up = true; }
+  while (k < 52) G.stock.push(deck[k++]);
+  hist = []; sel = null; $("#sMsg").textContent = "";
+  save(); render();
+}
+function save() { store.set("sol.game", { g: G, d: draw }); }
+function snap() { hist.push(JSON.stringify(G)); if (hist.length > 150) hist.shift(); }
+const pile = id => id === "stock" ? G.stock : id === "waste" ? G.waste : id[0] === "f" ? G.f[+id[1]] : G.t[+id[1]];
+
+/* ---------- Regeln ---------- */
+function canFound(c, f) { const tp = top(f); return tp ? tp.s === c.s && c.r === tp.r + 1 : c.r === 1; }
+function canTab(c, t) { const tp = top(t); return tp ? tp.up && red(tp) !== red(c) && c.r === tp.r - 1 : c.r === 13; }
+/* Karten ab Index i von Stapel "from" nach "to" legen, wenn erlaubt */
+function move(from, i, to) {
+  const src = pile(from), dst = pile(to), c = src[i];
+  if (!c || !c.up || from === to) return false;
+  if (to[0] === "f") { if (i !== src.length - 1 || !canFound(c, dst)) return false; }
+  else if (to[0] === "t") { if (!canTab(c, dst)) return false; }
+  else return false;
+  if ((from === "waste" || from[0] === "f") && i !== src.length - 1) return false;
+  snap();
+  dst.push(...src.splice(i, src.length - i));
+  if (from[0] === "t" && src.length && !top(src).up) top(src).up = true;
+  G.moves++; started();
+  return true;
+}
+/* beste Stelle: einzelne Karte zuerst auf eine Ablage, sonst an eine Spalte (belegte vor leeren) */
+function autoMove(from, i) {
+  const src = pile(from);
+  if (i === src.length - 1 && from[0] !== "f") for (let k = 0; k < 4; k++) if (move(from, i, "f" + k)) return true;
+  for (let k = 0; k < 7; k++) if (G.t[k].length && move(from, i, "t" + k)) return true;
+  if (!(from[0] === "t" && i === 0)) for (let k = 0; k < 7; k++) if (!G.t[k].length && move(from, i, "t" + k)) return true;
+  return false;
+}
+function drawCards() {
+  snap();
+  if (!G.stock.length) {
+    if (!G.waste.length) { hist.pop(); return; }
+    while (G.waste.length) { const c = G.waste.pop(); c.up = false; G.stock.push(c); }
+  } else {
+    for (let k = 0; k < draw && G.stock.length; k++) { const d = G.stock.pop(); d.up = true; G.waste.push(d); }
+  }
+  G.moves++; started();
+}
+const allUp = () => !G.stock.length && !G.waste.length && G.t.every(p => p.every(c => c.up));
+function checkWin() {
+  const n = G.f.reduce((a, p) => a + p.length, 0);
+  if (n === 52 && !G.won) {
+    G.won = true; stopTimer(); stats.won++;
+    if (!stats.best[draw] || G.time < stats.best[draw]) stats.best[draw] = G.time;
+    store.set("sol.stats", stats); save(); render();
+    $("#sMsg").textContent = "Gewonnen in " + G.moves + " Zügen und " + fmtDur(G.time * 1000) + "!";
+  }
+}
+function autoFinish() {
+  let any = false;
+  for (let k = -1; k < 7; k++) {
+    const src = k < 0 ? "waste" : "t" + k;
+    if (pile(src).length) for (let j = 0; j < 4; j++) if (move(src, pile(src).length - 1, "f" + j)) { any = true; break; }
+  }
+  sel = null; render(); save(); checkWin();
+  if (any) finT = setTimeout(autoFinish, 120);
+  else if (!G.won) toast("Nichts mehr abzulegen");
+}
+
+/* ---------- Zeit ---------- */
+function started() { if (!G.started) G.started = true; if (!timer && !G.won) timer = setInterval(tick, 1000); }
+function tick() { if (document.hidden) return; G.time++; $("#sTime").textContent = fmtDur(G.time * 1000); if (G.time % 10 === 0) save(); }
+function stopTimer() { clearInterval(timer); timer = 0; }
+
+/* ---------- Darstellung ---------- */
+function card(c, x, y, id, i, playable) {
+  const isSel = sel && sel.p === id && (id[0] === "t" ? sel.i <= i : sel.i === i);
+  const cls = "cd" + (c.up ? (red(c) ? " red" : "") : " down") + (isSel ? " sel" : "");
+  return `<div class="${cls}" data-p="${id}" data-i="${i}"${playable === false ? ' data-x="1"' : ""} style="left:${x}px;top:${y}px;width:${cw}px;height:${ch}px">` +
+    (c.up ? `<span class="r" style="font-size:${Math.round(cw * 0.32)}px">${RANK[c.r]}${SUIT[c.s]}</span><span class="m" style="font-size:${Math.round(cw * 0.5)}px">${SUIT[c.s]}</span>` : "") + "</div>";
+}
+const slot = (x, y, id, label) => `<div class="slot" data-p="${id}" style="left:${x}px;top:${y}px;width:${cw}px;height:${ch}px;line-height:${ch}px">${label}</div>`;
+function render() {
+  const sb = $("#sb");
+  /* Breite wie in WP über die Inhaltsbreite; im Vollbild zusätzlich auf die Fensterhöhe begrenzt (übliches Feld ≈ 0,8 × Breite hoch) */
+  const W = fitWidth(0, 0.8, sb);
+  let h = "", maxY = 0;
+  cw = Math.floor((W - gap * 6) / 7); ch = Math.round(cw * 1.4);
+  const dDown = Math.round(ch * 0.14), dUp = Math.round(ch * 0.3);
+  /* Talon und Ablagestapel */
+  h += slot(0, 0, "stock", G.waste.length ? "↻" : "");
+  if (G.stock.length) h += card(top(G.stock), 0, 0, "stock", G.stock.length - 1);
+  h += slot(cw + gap, 0, "waste", "");
+  const wn = Math.min(draw === 3 ? 3 : 1, G.waste.length), ws = Math.round(cw * 0.32);
+  for (let j = 0; j < wn; j++) { const k = G.waste.length - wn + j; h += card(G.waste[k], cw + gap + j * ws, 0, "waste", k, k === G.waste.length - 1); }
+  for (let k = 0; k < 4; k++) {
+    const x = (3 + k) * (cw + gap), p = G.f[k];
+    h += slot(x, 0, "f" + k, "A");
+    if (p.length) h += card(top(p), x, 0, "f" + k, p.length - 1);
+  }
+  /* Spalten */
+  for (let k = 0; k < 7; k++) {
+    const x = k * (cw + gap), p = G.t[k];
+    let y = ch + 12;
+    h += slot(x, y, "t" + k, "K");
+    for (let j = 0; j < p.length; j++) { h += card(p[j], x, y, "t" + k, j); y += p[j].up ? dUp : dDown; }
+    maxY = Math.max(maxY, y - (p.length ? (top(p).up ? dUp : dDown) : 0) + ch);
+  }
+  sb.style.width = (cw * 7 + gap * 6) + "px"; sb.style.height = Math.max(maxY, ch * 2 + 12) + 8 + "px";
+  sb.innerHTML = h;
+  $("#sMoves").textContent = G.moves; $("#sTime").textContent = fmtDur(G.time * 1000);
+  $("#sBest").textContent = stats.best[draw] ? fmtDur(stats.best[draw] * 1000) : "–"; $("#sWon").textContent = stats.won;
+  $("#sAuto").textContent = allUp() && !G.won ? "Fertig legen" : "Ablegen";
+  $$("#sDraw button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.d === draw));
+}
+function after() { sel = null; save(); render(); checkWin(); }
+
+$("#sb").onclick = e => {
+  const el = e.target.closest(".cd, .slot");
+  if (!el || G.won) return;
+  const id = el.dataset.p, i = el.dataset.i == null ? -1 : +el.dataset.i;
+  if (id === "stock") { sel = null; drawCards(); save(); render(); return; }
+  if (el.dataset.x) return;
+  /* markierte Karte auf ein angetipptes Ziel legen */
+  if (sel && sel.p !== id) {
+    if ((id[0] === "t" || id[0] === "f") && move(sel.p, sel.i, id)) { after(); return; }
+    sel = null; render();
+    if (i < 0) return;
+  } else if (sel && sel.p === id && sel.i === i) { sel = null; render(); return; }
+  if (i < 0) return;
+  const src = pile(id);
+  if (!src[i] || !src[i].up) return;
+  if (id === "waste" && i !== src.length - 1) return;
+  if (autoMove(id, i)) { after(); return; }
+  sel = { p: id, i }; render(); toast("Ziel antippen");
+};
+$("#sUndo").onclick = () => {
+  if (!hist.length) { toast("Nichts rückgängig zu machen"); return; }
+  clearTimeout(finT);
+  const t = G.time; G = JSON.parse(hist.pop()); G.time = t; G.won = false; sel = null; save(); render(); $("#sMsg").textContent = "";
+  if (G.started) started();
+};
+$("#sAuto").onclick = () => { if (!G.won) { clearTimeout(finT); autoFinish(); } };
+$("#sNew").onclick = () => { if (G.moves && !G.won && !confirm("Laufendes Spiel abbrechen und neu mischen?")) return; clearTimeout(finT); stopTimer(); newGame(); };
+$("#sDraw").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const d = +b.dataset.d; if (d === draw) return;
+  if (G.moves && !G.won && !confirm("Ziehmodus ändern startet ein neues Spiel. Fortfahren?")) return;
+  draw = d; store.set("sol.draw", draw); clearTimeout(finT); stopTimer(); newGame();
+};
+addEventListener("resize", () => { if (G) render(); });
+const saved = store.get("sol.game", null);
+if (saved && saved.g && saved.g.t && !saved.g.won && saved.d === draw) { G = saved.g; render(); if (G.started) started(); } else newGame();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ping-Pong · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.ctl button.ac:active{background:color-mix(in srgb,var(--accent) 85%,var(--text))}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.board{margin:0 auto 12px;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
+#cv{display:block;border-radius:12px;touch-action:none}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Ping-Pong</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="pMode"><button data-m="easy">Computer leicht</button><button data-m="hard">Computer schwer</button><button data-m="two">2 Spieler</button></div>
+  <div class="board" id="pBoard"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
+  <div class="ctl c2"><button id="pGo" class="ac">Start</button><button id="pReset" class="tonal">Neues Spiel</button></div>
+  <p class="muted help" style="font-size:14px">Schiebe deinen Schläger (unten) mit dem Finger. Zu zweit legt ihr das Telefon zwischen euch, jeder steuert seine Hälfte – mehrere Finger gleichzeitig gehen. Wer zuerst 7 Punkte hat, gewinnt. Tastatur: Pfeiltasten (unten), A/D (oben).</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Ping-Pong – Spielfeld 300 × 460 Einheiten; Spieler 1 unten, Spieler 2 / Computer oben
+   ========================================================= */
+const WW = 300, WH = 460, PW = 64, PH = 10, BR = 7, WIN = 7;
+const FONT = "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif";
+const cv = $("#cv"), ctx = cv.getContext("2d"), board = $("#pBoard");
+let sc = 1, mode = store.get("pong.mode", "easy");
+if (!["easy", "hard", "two"].includes(mode)) mode = "easy";
+let px = [WW / 2, WW / 2], ball, score, state, serve = 0, last = 0, loopOn = false, rafId = 0, msg = "";
+const keys = {}, owners = {};
+onLeave(() => cancelAnimationFrame(rafId));
+const isDark = () => document.documentElement.dataset.dark === "1";
+
+function reset() { score = [0, 0]; px = [WW / 2, WW / 2]; serve = 0; state = "ready"; place(); msg = "Tippe auf Start"; $("#pGo").textContent = "Start"; draw(); chips(); }
+function place() { ball = { x: WW / 2, y: WH / 2, vx: 0, vy: 0, sp: 240 }; }
+function launch() {
+  const a = (rnd(61) - 30) * Math.PI / 180;
+  ball.sp = 240; ball.vx = ball.sp * Math.sin(a); ball.vy = ball.sp * Math.cos(a) * (serve === 0 ? 1 : -1);
+}
+function start() {
+  if (state === "over") reset();
+  if (state === "run") { state = "pause"; msg = "Pause"; $("#pGo").textContent = "Weiter"; draw(); return; }
+  if (state === "ready") launch();
+  state = "run"; msg = ""; $("#pGo").textContent = "Pause";
+  if (!loopOn) { loopOn = true; last = 0; rafId = requestAnimationFrame(frame); }
+}
+function frame(t) {
+  if (state !== "run") { loopOn = false; draw(); return; }
+  const dt = last ? Math.min(0.033, (t - last) / 1000) : 0.016;
+  last = t;
+  if (keys.l0 || keys.r0) px[0] += (keys.r0 ? 1 : -1) * 360 * dt;
+  if (keys.l1 || keys.r1) px[1] += (keys.r1 ? 1 : -1) * 360 * dt;
+  if (mode !== "two") ai(dt);
+  px[0] = clampP(px[0]); px[1] = clampP(px[1]);
+  const n = Math.ceil(ball.sp * dt / 4);
+  for (let k = 0; k < n && state === "run"; k++) step(dt / n);
+  draw(); rafId = requestAnimationFrame(frame);
+}
+const clampP = x => Math.max(PW / 2, Math.min(WW - PW / 2, x));
+/* Computer folgt dem Ball mit begrenztem Tempo; „leicht“ reagiert träger und zielt ungenauer */
+function ai(dt) {
+  const hard = mode === "hard", target = ball.vy < 0 ? ball.x + (hard ? 0 : Math.sin(Date.now() / 400) * 22) : WW / 2, maxV = hard ? 330 : 190;
+  px[1] += Math.max(-maxV * dt, Math.min(maxV * dt, target - px[1]));
+}
+function hit(i) {
+  const rel = Math.max(-1, Math.min(1, (ball.x - px[i]) / (PW / 2))), a = rel * Math.PI / 3.2;
+  ball.sp = Math.min(560, ball.sp + 16);
+  ball.vx = ball.sp * Math.sin(a); ball.vy = ball.sp * Math.cos(a) * (i === 0 ? -1 : 1);
+  ball.y = i === 0 ? WH - 24 - BR : 24 + BR;
+}
+function step(dt) {
+  const oy = ball.y;
+  ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+  if (ball.x < BR) { ball.x = BR; ball.vx = Math.abs(ball.vx); }
+  if (ball.x > WW - BR) { ball.x = WW - BR; ball.vx = -Math.abs(ball.vx); }
+  /* Schläger unten (Spieler 1) bei y = WH-24, oben (Spieler 2) bei y = 24 */
+  if (ball.vy > 0 && oy + BR <= WH - 24 + 2 && ball.y + BR >= WH - 24 && Math.abs(ball.x - px[0]) <= PW / 2 + BR) hit(0);
+  if (ball.vy < 0 && oy - BR >= 24 - 2 && ball.y - BR <= 24 && Math.abs(ball.x - px[1]) <= PW / 2 + BR) hit(1);
+  if (ball.y > WH + BR) point(1); else if (ball.y < -BR) point(0);
+}
+function point(i) {
+  score[i]++; serve = 1 - i; place();
+  if (score[i] >= WIN) {
+    state = "over"; $("#pGo").textContent = "Neu";
+    msg = mode === "two" ? (i === 0 ? "Unten" : "Oben") + " gewinnt " + score[i] + ":" + score[1 - i] : i === 0 ? "Du gewinnst " + score[0] + ":" + score[1] + "!" : "Der Computer gewinnt " + score[1] + ":" + score[0];
+  } else { state = "ready"; msg = "Tippe aufs Feld für den nächsten Ball"; $("#pGo").textContent = "Start"; }
+}
+function draw() {
+  ctx.fillStyle = isDark() ? "#14324a" : "#2a6f97"; ctx.fillRect(0, 0, WW, WH);
+  ctx.fillStyle = "rgba(255,255,255,.5)";
+  for (let k = 0; k < WW; k += 16) ctx.fillRect(k + 2, WH / 2 - 1, 10, 2);
+  ctx.font = "700 44px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(255,255,255,.22)";
+  ctx.fillText(score[0], WW / 2, WH / 2 + 50);
+  ctx.save(); ctx.translate(WW / 2, WH / 2 - 50); if (mode === "two") ctx.rotate(Math.PI); ctx.fillText(score[1], 0, 0); ctx.restore();
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(px[0] - PW / 2, WH - 24, PW, PH);
+  ctx.fillStyle = "#f4c430"; ctx.fillRect(px[1] - PW / 2, 24 - PH, PW, PH);
+  ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(ball.x, ball.y, BR, 0, Math.PI * 2); ctx.fill();
+  if (msg) {
+    ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(0, WH / 2 + 82, WW, 40);
+    ctx.fillStyle = "#ffffff"; ctx.font = "600 15px " + FONT; ctx.fillText(msg, WW / 2, WH / 2 + 102);
+  }
+}
+function chips() { $$("#pMode button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === mode)); }
+function size() {
+  const W = fitWidth(400, WH / WW, board), r = devicePixelRatio || 1;
+  sc = W / WW;
+  cv.style.width = W + "px"; cv.style.height = Math.round(WH * sc) + "px"; board.style.width = W + "px";
+  cv.width = Math.round(W * r); cv.height = Math.round(WH * sc * r);
+  ctx.setTransform(sc * r, 0, 0, sc * r, 0, 0);
+  draw();
+}
+/* Mehrere Finger: jeder Finger steuert den Schläger der Hälfte, in der er aufgesetzt wurde */
+function local(cx, cy) { const rc = cv.getBoundingClientRect(); return [(cx - rc.left) / sc, (cy - rc.top) / sc]; }
+const who = y => mode === "two" && y < WH / 2 ? 1 : 0;
+function setP(i, x) { px[i] = clampP(x); if (state !== "run") draw(); }
+cv.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  const p = local(e.clientX, e.clientY); owners[e.pointerId] = who(p[1]); setP(owners[e.pointerId], p[0]);
+  if (state === "ready") start();
+});
+cv.addEventListener("pointermove", e => {
+  if (owners[e.pointerId] == null) { if (e.pointerType === "mouse") setP(0, local(e.clientX, e.clientY)[0]); return; }
+  setP(owners[e.pointerId], local(e.clientX, e.clientY)[0]);
+});
+const up = e => { delete owners[e.pointerId]; };
+addEventListener("pointerup", up); addEventListener("pointercancel", up);
+const KM = { ArrowLeft: "l0", ArrowRight: "r0", a: "l1", d: "r1", A: "l1", D: "r1" };
+addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (KM[e.key]) { keys[KM[e.key]] = true; e.preventDefault(); }
+  else if (e.key === " ") { if (e.target.closest?.("button")) return; e.preventDefault(); if (!e.repeat) start(); }
+});
+addEventListener("keyup", e => { if (KM[e.key]) keys[KM[e.key]] = false; });
+$("#pGo").onclick = start;
+$("#pReset").onclick = reset;
+$("#pMode").onclick = e => { const b = e.target.closest("button"); if (b) { mode = b.dataset.m; store.set("pong.mode", mode); reset(); } };
+function pause() { if (state === "run") start(); }
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+addEventListener("blur", pause);
+addEventListener("resize", size);
+reset(); size();
+})();
+</script>
+</body>
+</html>

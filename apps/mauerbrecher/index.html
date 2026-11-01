@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mauerbrecher · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.ctl button.ac:active{background:color-mix(in srgb,var(--accent) 85%,var(--text))}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.board{margin:0 auto 12px;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
+#cv{display:block;border-radius:12px;touch-action:none}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Mauerbrecher</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="stats"><div><b id="bScore">0</b><span>Punkte</span></div><div><b id="bLevel">1</b><span>Level</span></div><div><b id="bLives">3</b><span>Leben</span></div><div><b id="bBest">0</b><span>Rekord</span></div></div>
+  <div class="board" id="bBoard"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
+  <div class="ctl"><button data-d="-1" aria-label="Links">←</button><button id="bGo" class="ac">Start</button><button data-d="1" aria-label="Rechts">→</button></div>
+  <p class="muted help" style="font-size:14px">Schiebe den Schläger mit dem Finger über das Spielfeld oder halte die Pfeiltasten. Tippe aufs Feld, um den Ball abzuschießen. Wo der Ball den Schläger trifft, bestimmt seinen Winkel.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Mauerbrecher – Spielwelt in festen Einheiten 320 × 440, skaliert auf die Breite
+   ========================================================= */
+const WW = 320, WH = 440, PW = 58, PH = 9, PY = WH - 30, BR = 5, COLS = 8, BW = 34.5, BH = 13, GAP = 4, TOP = 46;
+const ROWC = ["#e0483e", "#ee7a22", "#e8b81a", "#43b047", "#29a0c6", "#3a6fe0", "#8e5bd1", "#d14f9c"];
+const FONT = "system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif";
+const cv = $("#cv"), ctx = cv.getContext("2d"), board = $("#bBoard");
+let sc = 1, best = store.get("brk.best", 0);
+let px, ball, bricks, score, level, lives, state, last = 0, keyDir = 0, holdDir = 0, loopOn = false, rafId = 0, msg = "";
+onLeave(() => cancelAnimationFrame(rafId));
+
+/* Farbe a mit Anteil p über b legen (für zweifach zu treffende Steine) */
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const shade = (a, p) => "rgb(" + hex(a).map(v => Math.round(v * p)).join(",") + ")";
+function theme() {
+  const cs = getComputedStyle(document.documentElement), g = n => cs.getPropertyValue(n).trim();
+  return { sf2: g("--surface-2"), ac: g("--accent"), tx: g("--text"), dark: document.documentElement.dataset.dark === "1" };
+}
+
+const speed = () => 230 + (level - 1) * 28;
+function build() {
+  const rows = Math.min(4 + level, 8);
+  bricks = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < COLS; c++)
+    bricks.push({ x: 8 + c * (BW + GAP), y: TOP + r * (BH + GAP), r, hp: level >= 3 && r < Math.min(level - 2, 3) ? 2 : 1 });
+}
+function stick() { ball = { x: px, y: PY - BR - 1, vx: 0, vy: 0, stuck: true }; }
+function newGame() { score = 0; level = 1; lives = 3; px = WW / 2; build(); stick(); state = "ready"; msg = "Tippe zum Abschießen"; hud(); draw(); }
+function hud() {
+  $("#bScore").textContent = score; $("#bLevel").textContent = level; $("#bLives").textContent = lives; $("#bBest").textContent = best;
+  $("#bGo").textContent = state === "run" ? "Pause" : state === "over" ? "Neu" : state === "pause" ? "Weiter" : "Start";
+}
+function launch() {
+  if (state === "over") { newGame(); return; }
+  if (ball.stuck) { const a = (rnd(41) - 20) * Math.PI / 180, s = speed(); ball.vx = s * Math.sin(a); ball.vy = -s * Math.cos(a); ball.stuck = false; }
+  state = "run"; msg = ""; hud(); loop();
+}
+function pause() { if (state === "run") { state = "pause"; msg = "Pause"; hud(); draw(); } }
+function loop() { if (!loopOn) { loopOn = true; last = 0; rafId = requestAnimationFrame(frame); } }
+function frame(t) {
+  if (state !== "run") { loopOn = false; draw(); return; }
+  const dt = last ? Math.min(0.033, (t - last) / 1000) : 0.016;
+  last = t;
+  const dir = keyDir || holdDir;
+  if (dir) px += dir * 380 * dt;
+  px = Math.max(PW / 2, Math.min(WW - PW / 2, px));
+  if (ball.stuck) ball.x = px;
+  else {
+    const n = Math.ceil(Math.max(Math.abs(ball.vx), Math.abs(ball.vy)) * dt / 3);
+    for (let k = 0; k < n && state === "run"; k++) step(dt / n);
+  }
+  draw(); rafId = requestAnimationFrame(frame);
+}
+function step(dt) {
+  const ox = ball.x, oy = ball.y;
+  ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+  if (ball.x < BR) { ball.x = BR; ball.vx = Math.abs(ball.vx); }
+  if (ball.x > WW - BR) { ball.x = WW - BR; ball.vx = -Math.abs(ball.vx); }
+  if (ball.y < BR) { ball.y = BR; ball.vy = Math.abs(ball.vy); }
+  /* Schläger: Trefferpunkt bestimmt den Winkel (bis 60° aus der Senkrechten) */
+  if (ball.vy > 0 && ball.y + BR >= PY && oy + BR <= PY + 2 && ball.x >= px - PW / 2 - BR && ball.x <= px + PW / 2 + BR) {
+    const rel = Math.max(-1, Math.min(1, (ball.x - px) / (PW / 2))), a = rel * Math.PI / 3, s = speed();
+    ball.vx = s * Math.sin(a); ball.vy = -s * Math.cos(a); ball.y = PY - BR;
+  }
+  if (ball.y > WH + BR * 2) { lose(); return; }
+  const i = bricks.findIndex(br => ball.x + BR > br.x && ball.x - BR < br.x + BW && ball.y + BR > br.y && ball.y - BR < br.y + BH);
+  if (i < 0) return;
+  const hit = bricks[i];
+  /* kam der Ball von der Seite, horizontal abprallen, sonst vertikal */
+  if (ox + BR <= hit.x || ox - BR >= hit.x + BW) { ball.vx = -ball.vx; ball.x = ox; } else { ball.vy = -ball.vy; ball.y = oy; }
+  hit.hp--;
+  if (hit.hp <= 0) { bricks.splice(i, 1); score += (8 - hit.r) * 10 * level; }
+  else score += 5;
+  if (score > best) { best = score; store.set("brk.best", best); }
+  hud();
+  if (!bricks.length) { level++; build(); stick(); state = "ready"; msg = "Level " + level + " – tippe zum Abschießen"; hud(); }
+}
+function lose() {
+  lives--;
+  if (lives <= 0) { state = "over"; msg = "Spiel vorbei – " + score + " Punkte"; }
+  else { stick(); state = "ready"; msg = "Noch " + lives + " Leben – tippe zum Abschießen"; }
+  hud();
+}
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+function draw() {
+  const t = theme();
+  ctx.fillStyle = t.sf2; ctx.fillRect(0, 0, WW, WH);
+  for (const br of bricks) { ctx.fillStyle = br.hp > 1 ? shade(ROWC[br.r % 8], 0.6) : ROWC[br.r % 8]; rr(br.x, br.y, BW, BH, 3); }
+  ctx.fillStyle = t.ac; rr(px - PW / 2, PY, PW, PH, 4);
+  ctx.fillStyle = t.tx; ctx.beginPath(); ctx.arc(ball.x, ball.y, BR, 0, Math.PI * 2); ctx.fill();
+  if (msg) {
+    ctx.fillStyle = t.dark ? "rgba(0,0,0,.55)" : "rgba(255,255,255,.75)"; ctx.fillRect(0, WH / 2 - 26, WW, 44);
+    ctx.fillStyle = t.tx; ctx.font = "600 16px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(msg, WW / 2, WH / 2 - 4);
+  }
+}
+function size() {
+  const W = fitWidth(420, WH / WW, board), r = devicePixelRatio || 1;
+  sc = W / WW;
+  cv.style.width = W + "px"; cv.style.height = Math.round(WH * sc) + "px"; board.style.width = W + "px";
+  cv.width = Math.round(W * r); cv.height = Math.round(WH * sc * r);
+  ctx.setTransform(sc * r, 0, 0, sc * r, 0, 0);
+  draw();
+}
+/* Finger oder Maus über dem Spielfeld bewegt den Schläger */
+function setPaddle(x) { px = Math.max(PW / 2, Math.min(WW - PW / 2, x)); if (ball.stuck) ball.x = px; if (state !== "run") draw(); }
+const moveTo = clientX => setPaddle((clientX - cv.getBoundingClientRect().left) / sc);
+let downX = 0, moved = false;
+cv.addEventListener("pointerdown", e => { e.preventDefault(); downX = e.clientX; moved = false; moveTo(e.clientX); });
+cv.addEventListener("pointermove", e => { if (Math.abs(e.clientX - downX) > 6) moved = true; moveTo(e.clientX); });
+cv.addEventListener("pointerup", () => { if (!moved && state !== "run") launch(); });
+$$(".ctl button[data-d]").forEach(b => onPress(b, () => { holdDir = +b.dataset.d; if (state !== "run") setPaddle(px + holdDir * 12); }));
+addEventListener("pointerup", () => { holdDir = 0; });
+addEventListener("pointercancel", () => { holdDir = 0; });
+onPress($("#bGo"), () => state === "run" ? pause() : launch());
+addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "arrowleft" || k === "a") { keyDir = -1; e.preventDefault(); }
+  else if (k === "arrowright" || k === "d") { keyDir = 1; e.preventDefault(); }
+  else if (k === " " || k === "arrowup") { e.preventDefault(); if (!e.repeat) state === "run" ? pause() : launch(); }
+});
+addEventListener("keyup", e => { if (/^(arrowleft|arrowright|a|d)$/.test(e.key.toLowerCase())) keyDir = 0; });
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+addEventListener("blur", pause);
+addEventListener("resize", size);
+newGame(); size();
+})();
+</script>
+</body>
+</html>

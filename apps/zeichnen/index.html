@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zeichenblock · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#zCols{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.sw{width:36px;height:36px;border-radius:50%;padding:0;cursor:pointer;border:2px solid var(--border)}
+.sw[aria-pressed="true"]{outline:3px solid var(--text);outline-offset:2px}
+#zBoard{margin:0 auto 12px;touch-action:none;user-select:none;-webkit-user-select:none}
+#cv{display:block;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair;box-shadow:0 0 0 1px var(--border)}
+#zOut{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.85);padding:16px;overflow:auto;text-align:center;color:#fff}
+#zOut img{max-width:100%;border-radius:8px;background:#fff}
+#zOut .row{justify-content:center}
+#zOut .btn.text{color:#fff}
+#zAsk .row{margin-top:8px}
+html.fs #zCols{gap:6px;margin-bottom:6px}
+html.fs .sw{width:30px;height:30px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Zeichenblock</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div id="zCols"></div>
+  <div class="chips" id="zSize"><button data-s="2">Fein</button><button data-s="5">Mittel</button><button data-s="10">Dick</button><button data-s="22">Marker</button><button id="zErase">Radierer</button></div>
+  <div id="zBoard"><canvas id="cv" aria-label="Zeichenfläche"></canvas></div>
+  <div class="ctl"><button id="zUndo" class="tonal">Rückgängig</button><button id="zClear" class="tonal" aria-expanded="false">Leeren</button><button id="zImg" class="ac">Als Bild</button></div>
+  <div class="card fsx" id="zAsk" hidden><h3>Zeichnung wirklich leeren?</h3><div class="row"><button class="btn danger" id="zClearYes">Leeren</button><button class="btn text" id="zClearNo">Abbrechen</button></div></div>
+  <p class="muted help" style="font-size:14px">Male mit dem Finger. Die Zeichnung wird automatisch in diesem Browser gespeichert. „Als Bild“ zeigt sie als PNG an – je nach Browser lässt sie sich dann durch langes Drücken speichern oder teilen.</p>
+</main>
+<div id="zOut" hidden role="dialog" aria-label="Zeichnung als Bild"><p style="margin:0 0 12px">Lange auf das Bild drücken, um es zu speichern (wenn der Browser das anbietet). Antippen außerhalb schließt.</p><img id="zPng" alt="Zeichnung"><div class="row mt"><a class="btn" id="zDl" download="zeichnung.png" href="#" style="text-decoration:none;line-height:24px">Herunterladen</a><button class="btn text" id="zClose">Schließen</button></div></div>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Zeichenblock
+   ========================================================= */
+const COLORS = ["#111111", "#ffffff", "#e0483e", "#ee7a22", "#f4c430", "#43b047", "#29a0c6", "#3a6fe0", "#8e5bd1", "#d14f9c", "#795548", "#9e9e9e"];
+const SIZES = [2, 5, 10, 22];
+// Striche in Einheiten von 1/1000 der Breite, damit sie bei anderer Bildschirmgröße passen
+const S = 1000, RATIO = 1.25, MAXPTS = 60000;
+const cv = $("#cv"), ctx = cv.getContext("2d");
+const cfg = Object.assign({ c: "#111111", s: 5, erase: false }, store.get("draw.cfg", {}));
+if (!SIZES.includes(cfg.s)) cfg.s = 5;
+let W = 0, H = 0, strokes = store.get("draw.strokes", []), cur = null, saveT = 0;
+if (!Array.isArray(strokes)) strokes = [];
+onLeave(() => { if (saveT) { clearTimeout(saveT); save(); } });
+
+function chips() {
+  $("#zCols").innerHTML = COLORS.map(c => `<button class="sw" data-c="${c}" style="background:${c}" aria-pressed="${!cfg.erase && cfg.c === c}" aria-label="Farbe ${c}"></button>`).join("");
+  $$("#zSize button[data-s]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.s === cfg.s));
+  $("#zErase").setAttribute("aria-pressed", cfg.erase);
+  store.set("draw.cfg", cfg);
+}
+function size() {
+  const r = devicePixelRatio || 1;
+  W = fitWidth(0, RATIO, $("#zBoard")); H = Math.round(W * RATIO);
+  cv.style.width = W + "px"; cv.style.height = H + "px"; $("#zBoard").style.width = W + "px";
+  cv.width = Math.round(W * r); cv.height = Math.round(H * r);
+  ctx.setTransform(r, 0, 0, r, 0, 0);
+  redraw();
+}
+function drawStroke(st, from = 0) {
+  const p = st.p, f = W / S;
+  ctx.strokeStyle = st.c; ctx.fillStyle = st.c; ctx.lineWidth = st.w * f; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (p.length === 2) { ctx.beginPath(); ctx.arc(p[0] * f, p[1] * f, st.w * f / 2, 0, Math.PI * 2); ctx.fill(); return; }
+  from = Math.max(0, from);
+  ctx.beginPath(); ctx.moveTo(p[from] * f, p[from + 1] * f);
+  for (let k = from + 2; k < p.length; k += 2) ctx.lineTo(p[k] * f, p[k + 1] * f);
+  ctx.stroke();
+}
+function redraw() {
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+  strokes.forEach(s => drawStroke(s));
+}
+function pt(e) { const rc = cv.getBoundingClientRect(); return [Math.round((e.clientX - rc.left) / W * S), Math.round((e.clientY - rc.top) / W * S)]; }
+function begin(e) {
+  const p = pt(e);
+  cur = { c: cfg.erase ? "#ffffff" : cfg.c, w: cfg.erase ? cfg.s * 2.5 + 8 : cfg.s, p: [p[0], p[1]] };
+  strokes.push(cur); drawStroke(cur);
+}
+function extend(e) {
+  if (!cur) return;
+  const p = pt(e), n = cur.p.length, dx = p[0] - cur.p[n - 2], dy = p[1] - cur.p[n - 1];
+  if (dx * dx + dy * dy < 9) return;
+  cur.p.push(p[0], p[1]); drawStroke(cur, n - 2);
+}
+function end() {
+  if (!cur) return;
+  cur = null; clearTimeout(saveT); saveT = setTimeout(save, 400);
+}
+function save() {
+  saveT = 0;
+  const n = strokes.reduce((a, s) => a + s.p.length, 0);
+  if (n > MAXPTS) { toast("Zeichnung zu groß zum automatischen Speichern"); return; }
+  // direkt statt store.set, damit ein voller Speicher gemeldet werden kann (gleicher Schlüssel: st.draw.strokes)
+  try { localStorage.setItem("st.draw.strokes", JSON.stringify(strokes)); } catch { toast("Speichern nicht möglich (Speicher voll?)"); }
+}
+cv.addEventListener("pointerdown", e => {
+  if (e.button > 0) return;
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch {}
+  begin(e);
+});
+cv.addEventListener("pointermove", e => {
+  if (!cur) return;
+  e.preventDefault();
+  (e.getCoalescedEvents?.() || [e]).forEach(extend);
+});
+addEventListener("pointerup", end);
+addEventListener("pointercancel", end);
+$("#zCols").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.c = b.dataset.c; cfg.erase = false; chips(); } };
+$("#zSize").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "zErase") cfg.erase = !cfg.erase; else cfg.s = +b.dataset.s;
+  chips();
+};
+$("#zUndo").onclick = () => { if (strokes.length) { strokes.pop(); redraw(); save(); } };
+function ask(on) { $("#zAsk").hidden = !on; $("#zClear").setAttribute("aria-expanded", on); if (on) $("#zAsk").scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+$("#zClear").onclick = () => { if (strokes.length) ask($("#zAsk").hidden); };
+$("#zClearNo").onclick = () => ask(false);
+$("#zClearYes").onclick = () => { strokes = []; redraw(); save(); ask(false); };
+$("#zImg").onclick = () => {
+  try { const u = cv.toDataURL("image/png"); $("#zPng").src = u; $("#zDl").href = u; $("#zOut").hidden = false; }
+  catch { toast("Bild konnte nicht erzeugt werden"); }
+};
+$("#zOut").onclick = e => { if (e.target.id !== "zPng" && e.target.id !== "zDl") $("#zOut").hidden = true; };
+const onKey = e => { if (e.key === "Escape") $("#zOut").hidden = true; };
+addEventListener("keydown", onKey);
+addEventListener("resize", size);
+onLeave(() => { removeEventListener("resize", size); removeEventListener("keydown", onKey); });
+chips();
+size();
+})();
+</script>
+</body>
+</html>

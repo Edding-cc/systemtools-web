@@ -46,11 +46,11 @@
 </header>
 <main class="wrap" id="app">
   <div class="stats"><div><b id="gScore">0</b><span>Punkte</span></div><div><b id="gBest">0</b><span>Rekord</span></div><div><b id="gMax">2</b><span>Größte Kachel</span></div></div>
-  <div id="b2" aria-label="Spielfeld"></div>
+  <div id="b2" data-fit="1" aria-label="Spielfeld"></div>
   <p class="msg" id="gMsg" role="status"></p>
   <div class="ctl" id="gPad"><button data-d="left" aria-label="Links">←</button><button data-d="up" aria-label="Hoch">↑</button><button data-d="down" aria-label="Runter">↓</button><button data-d="right" aria-label="Rechts">→</button></div>
   <div class="ctl c2"><button id="gUndo" class="tonal">Rückgängig</button><button id="gNew" class="ac">Neues Spiel</button></div>
-  <p class="muted" style="font-size:14px">Wische über das Spielfeld oder nutze die Pfeile (auch Pfeiltasten oder WASD). Gleiche Zahlen verschmelzen. Ziel ist die Kachel 2048 – danach kannst du weiterspielen. Der Spielstand bleibt gespeichert.</p>
+  <p class="muted help" style="font-size:14px">Wische über das Spielfeld oder nutze die Pfeile (auch Pfeiltasten oder WASD). Gleiche Zahlen verschmelzen. Ziel ist die Kachel 2048 – danach kannst du weiterspielen. Der Spielstand bleibt gespeichert.</p>
 </main>
 <script>
 (function () {

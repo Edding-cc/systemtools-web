@@ -50,7 +50,7 @@ function viewSpeedtest(app) {
   onLeave(() => abort?.abort());
   const live = v => $("#stLive").innerHTML = v > 0 ? `${nf(v / 1e6, v >= 1e8 ? 0 : 1)} <span class="unit">Mbit/s</span>` : "–";
   const phase = t => $("#stPhase").textContent = t;
-  const res = (el, o) => $(el).innerHTML = `<div class="row" style="justify-content:space-around;gap:16px"><div><div class="muted">↓ Download</div><b style="font-size:22px">${fmtBits(o.down)}</b></div><div><div class="muted">↑ Upload</div><b style="font-size:22px">${fmtBits(o.up)}</b></div></div>${o.ping != null ? `<div class="muted" style="margin-top:8px">Ping ${nf(o.ping, 0)} ms</div>` : ""}${o.where ? `<div class="muted" style="font-size:13px">${esc(o.where)}</div>` : ""}`;
+  const res = (el, o) => $(el).innerHTML = `<div class="row" style="justify-content:space-around;gap:16px"><div><div class="muted">↓ Download</div><b style="font-size:22px">${fmtBits(o.down)}</b></div><div><div class="muted">↑ Upload</div><b style="font-size:22px">${fmtBits(o.up)}</b></div></div>${o.err ? `<div class="err" style="font-size:13px;margin-top:6px">${esc(o.err)}</div>` : ""}${o.ping != null ? `<div class="muted" style="margin-top:8px">Ping ${nf(o.ping, 0)} ms</div>` : ""}${o.where ? `<div class="muted" style="font-size:13px">${esc(o.where)}</div>` : ""}`;
   $("#stGo").onclick = async () => {
     if (abort) { abort.abort(); return; }
     abort = new AbortController();
@@ -71,7 +71,7 @@ function viewSpeedtest(app) {
       $("#stCf").textContent = "…"; live(0);
       const r = await cloudflareTest(sig, phase, live);
       res("#stCf", r);
-      finish("Fertig");
+      finish(r.err ? "Fertig mit Fehlern" : "Fertig");
     } catch (e) { if (sig.aborted) { finish("Abgebrochen"); return; } $("#stCf").innerHTML = `<span class="err">Fehlgeschlagen: ${esc(e.message)}</span>`; finish("Fertig mit Fehlern"); }
     function finish(t) { phase(t); abort = null; btn.textContent = "Speedtest starten"; btn.classList.remove("tonal"); if (t !== "Fertig") live(0); $("#stLive").innerHTML = "–"; }
   };
@@ -154,8 +154,12 @@ async function cloudflareTest(sig, phase, live) {
   const ping = pings[Math.floor(pings.length / 2)];
   const pct90 = a => { a = a.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * .9))] || 0; };
 
+  // Scheitert Download oder Upload, bleiben die übrigen Teilergebnisse stehen (mit Fehlertext je Phase)
+  const errs = [];
+  const failed = (what, e) => { if (sig.aborted) throw e; errs.push(what + " fehlgeschlagen: " + (e?.message || "Verbindungsfehler")); };
   phase("Cloudflare: Download ↓");
   const down = [];
+  try {
   const t0all = performance.now();
   outer: for (const [size, n] of [[1e5, 4], [1e6, 4], [1e7, 3], [2.5e7, 3], [1e8, 2]]) {
     for (let k = 0; k < n; k++) {
@@ -173,9 +177,11 @@ async function cloudflareTest(sig, phase, live) {
       if (secs > 6 || performance.now() - t0all > 15000) break outer;
     }
   }
+  } catch (e) { failed("Download", e); }
   phase("Cloudflare: Upload ↑"); live(0);
   const up = [];
   const t0up = performance.now();
+  try {
   outer2: for (const [size, n] of [[1e5, 3], [1e6, 3], [1e7, 3], [2.5e7, 2], [5e7, 2]]) {
     const body = new Uint8Array(size);
     for (let k = 0; k < n; k++) {
@@ -190,7 +196,8 @@ async function cloudflareTest(sig, phase, live) {
       if (total > 6 || performance.now() - t0up > 15000) break outer2;
     }
   }
-  return { down: pct90(down), up: pct90(up), ping, where: colo ? "Rechenzentrum " + colo : "" };
+  } catch (e) { failed("Upload", e); }
+  return { down: pct90(down), up: pct90(up), ping, where: colo ? "Rechenzentrum " + colo : "", err: errs.join(" · ") };
 }
 
 viewSpeedtest($("#app"));

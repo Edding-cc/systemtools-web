@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reversi · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);padding:0;touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.board{margin:0 auto 12px;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
+#cv{display:block;cursor:pointer;border-radius:12px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Reversi</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="rMode"><button data-m="easy">Leicht</button><button data-m="mid">Mittel</button><button data-m="hard">Schwer</button><button data-m="two">2 Spieler</button></div>
+  <div class="stats"><div><b id="rA">2</b><span id="rAl">Du (Schwarz)</span></div><div><b id="rB">2</b><span id="rBl">Computer (Weiß)</span></div></div>
+  <div class="board" id="rBoard"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
+  <p class="msg" id="rMsg" role="status"></p>
+  <div class="ctl c2"><button id="rNew" class="ac">Neues Spiel</button><button id="rHint" class="tonal">Züge zeigen</button></div>
+  <p class="muted" style="font-size:14px" id="rRec"></p>
+  <p class="muted help" style="font-size:14px">Setze einen Stein so, dass du gegnerische Steine waagerecht, senkrecht oder schräg einschließt – sie werden zu deinen. Wer am Ende mehr Steine hat, gewinnt. Kann jemand nicht ziehen, muss er passen.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Reversi
+   ========================================================= */
+const N = 8, DIRS = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+const WT = [
+  120, -20, 20, 5, 5, 20, -20, 120,
+  -20, -40, -5, -5, -5, -5, -40, -20,
+  20, -5, 15, 3, 3, 15, -5, 20,
+  5, -5, 3, 3, 3, 3, -5, 5,
+  5, -5, 3, 3, 3, 3, -5, 5,
+  20, -5, 15, 3, 3, 15, -5, 20,
+  -20, -40, -5, -5, -5, -5, -40, -20,
+  120, -20, 20, 5, 5, 20, -20, 120
+];
+const MODES = ["easy", "mid", "hard", "two"];
+let mode = store.get("rev.mode", "mid"), hints = store.get("rev.hints", true);
+const rec = store.get("rev.rec", { w: 0, l: 0, d: 0 });
+if (!MODES.includes(mode)) mode = "mid";
+const cv = $("#cv"), ctx = cv.getContext("2d");
+let cs = 0, b, turn, over, last, busy = false, cpuT = 0;
+onLeave(() => clearTimeout(cpuT));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function flips(bd, i, p) {
+  if (bd[i]) return [];
+  const x = i % N, y = (i - x) / N, q = 3 - p;
+  let out = [];
+  for (const [dx, dy] of DIRS) {
+    const line = [];
+    let nx = x + dx, ny = y + dy;
+    while (nx >= 0 && nx < N && ny >= 0 && ny < N && bd[ny * N + nx] === q) { line.push(ny * N + nx); nx += dx; ny += dy; }
+    if (line.length && nx >= 0 && nx < N && ny >= 0 && ny < N && bd[ny * N + nx] === p) out = out.concat(line);
+  }
+  return out;
+}
+function movesFor(bd, p) {
+  const out = [];
+  for (let i = 0; i < N * N; i++) if (!bd[i]) { const f = flips(bd, i, p); if (f.length) out.push({ i, f }); }
+  return out;
+}
+function apply(bd, m, p) { const nb = bd.slice(); nb[m.i] = p; for (const k of m.f) nb[k] = p; return nb; }
+function count(bd) { let a = 0, c = 0; for (const v of bd) { if (v === 1) a++; else if (v === 2) c++; } return [a, c]; }
+/* Bewertung aus Sicht von p: Feldgewichte, Beweglichkeit, am Ende nur Steinzahl */
+function evaluate(bd, p) {
+  const q = 3 - p, mp = movesFor(bd, p).length, mq = movesFor(bd, q).length;
+  let s = 0;
+  if (!mp && !mq) { const n = count(bd); s = p === 1 ? n[0] - n[1] : n[1] - n[0]; return s > 0 ? 10000 + s : s < 0 ? -10000 + s : 0; }
+  for (let i = 0; i < N * N; i++) { if (bd[i] === p) s += WT[i]; else if (bd[i] === q) s -= WT[i]; }
+  return s + (mp - mq) * 8;
+}
+function search(bd, depth, alpha, beta, p) {
+  const ms = movesFor(bd, p);
+  let best = -Infinity;
+  if (depth === 0) return evaluate(bd, p);
+  if (!ms.length) {
+    if (!movesFor(bd, 3 - p).length) return evaluate(bd, p);
+    return -search(bd, depth - 1, -beta, -alpha, 3 - p);
+  }
+  ms.sort((m1, m2) => WT[m2.i] - WT[m1.i]);
+  for (const m of ms) {
+    const v = -search(apply(bd, m, p), depth - 1, -beta, -alpha, 3 - p);
+    if (v > best) best = v;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+function cpuMove() {
+  const ms = movesFor(b, 2), depth = mode === "hard" ? 4 : 2;
+  let best = -Infinity, pick = ms[0];
+  if (mode === "easy") {
+    if (rnd(100) < 50) return ms[rnd(ms.length)];
+    for (const m of ms) { const v = WT[m.i] + rnd(30); if (v > best) { best = v; pick = m; } }
+    return pick;
+  }
+  ms.sort((m1, m2) => WT[m2.i] - WT[m1.i]);
+  for (const m of ms) {
+    const v = -search(apply(b, m, 2), depth - 1, -Infinity, -best, 1);
+    if (v > best) { best = v; pick = m; }
+  }
+  return pick;
+}
+
+function size() {
+  const W = fitWidth(420, 1, $("#rBoard")), r = devicePixelRatio || 1;
+  cs = W / N;
+  cv.style.width = cv.style.height = W + "px"; $("#rBoard").style.width = W + "px";
+  cv.width = cv.height = Math.round(W * r);
+  ctx.setTransform(r, 0, 0, r, 0, 0);
+  draw();
+}
+function draw() {
+  if (!cs) return;
+  const W = cs * N, ms = (hints && !over && !cpuTurn()) ? movesFor(b, turn) : [];
+  ctx.fillStyle = "#1e7a46"; ctx.fillRect(0, 0, W, W);
+  ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1;
+  for (let i = 1; i < N; i++) {
+    ctx.beginPath(); ctx.moveTo(i * cs, 0); ctx.lineTo(i * cs, W); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * cs); ctx.lineTo(W, i * cs); ctx.stroke();
+  }
+  for (let i = 0; i < N * N; i++) {
+    const v = b[i]; if (!v) continue;
+    const x = (i % N + 0.5) * cs, y = (Math.floor(i / N) + 0.5) * cs;
+    ctx.fillStyle = v === 1 ? "#141414" : "#f4f4f4";
+    ctx.beginPath(); ctx.arc(x, y, cs * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.stroke();
+    if (i === last) { ctx.fillStyle = css("--err"); ctx.beginPath(); ctx.arc(x, y, cs * 0.09, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.fillStyle = turn === 1 ? "rgba(0,0,0,.35)" : "rgba(255,255,255,.45)";
+  for (const m of ms) {
+    const x = (m.i % N + 0.5) * cs, y = (Math.floor(m.i / N) + 0.5) * cs;
+    ctx.beginPath(); ctx.arc(x, y, cs * 0.12, 0, Math.PI * 2); ctx.fill();
+  }
+}
+const cpuTurn = () => mode !== "two" && turn === 2;
+const name = p => mode === "two" ? (p === 1 ? "Schwarz" : "Weiß") : (p === 1 ? "Du" : "Der Computer");
+function labels() {
+  const n = count(b), two = mode === "two";
+  $("#rA").textContent = n[0]; $("#rB").textContent = n[1];
+  $("#rAl").textContent = two ? "Schwarz" : "Du (Schwarz)";
+  $("#rBl").textContent = two ? "Weiß" : "Computer (Weiß)";
+  $$("#rMode button").forEach(bt => bt.setAttribute("aria-pressed", bt.dataset.m === mode));
+  $("#rHint").textContent = hints ? "Züge verbergen" : "Züge zeigen";
+  $("#rRec").textContent = two ? "" : "Bilanz gegen den Computer: " + rec.w + " Siege, " + rec.l + " Niederlagen, " + rec.d + " Unentschieden";
+}
+const msg = s => { $("#rMsg").textContent = s; };
+function newGame() {
+  clearTimeout(cpuT);
+  b = Array(N * N).fill(0);
+  b[27] = 2; b[36] = 2; b[28] = 1; b[35] = 1;
+  turn = 1; over = false; last = -1; busy = false;
+  msg(mode === "two" ? "Schwarz beginnt" : "Du beginnst (Schwarz)");
+  labels(); draw();
+}
+function finish() {
+  const n = count(b);
+  over = true;
+  if (n[0] === n[1]) { msg("Unentschieden, " + n[0] + " zu " + n[1]); if (mode !== "two") rec.d++; }
+  else if (mode === "two") msg((n[0] > n[1] ? "Schwarz" : "Weiß") + " gewinnt " + Math.max(n[0], n[1]) + " zu " + Math.min(n[0], n[1]));
+  else if (n[0] > n[1]) { msg("Du gewinnst " + n[0] + " zu " + n[1] + "!"); rec.w++; }
+  else { msg("Der Computer gewinnt " + n[1] + " zu " + n[0] + "."); rec.l++; }
+  store.set("rev.rec", rec);
+}
+/* nach einem Zug: Gegner am Zug, sonst passen, sonst Spielende */
+function next() {
+  const q = 3 - turn;
+  if (movesFor(b, q).length) { turn = q; msg(mode === "two" ? name(turn) + " ist dran" : turn === 1 ? "Du bist dran" : "Computer denkt …"); }
+  else if (movesFor(b, turn).length) msg(name(q) + (mode !== "two" && q === 1 ? " musst passen" : " muss passen") + " – " + (mode === "two" ? name(turn) + " ist noch einmal dran" : turn === 1 ? "du bist noch einmal dran" : "der Computer zieht noch einmal"));
+  else finish();
+  labels(); draw();
+  if (!over && cpuTurn()) { busy = true; cpuT = setTimeout(() => { busy = false; doMove(cpuMove()); }, 450); }
+}
+function doMove(m) {
+  if (!m || over) return;
+  b = apply(b, m, turn); last = m.i;
+  next();
+}
+cv.onclick = e => {
+  if (over || busy || cpuTurn()) return;
+  const rc = cv.getBoundingClientRect(), x = Math.floor((e.clientX - rc.left) / cs), y = Math.floor((e.clientY - rc.top) / cs);
+  if (x < 0 || y < 0 || x >= N || y >= N) return;
+  const i = y * N + x, f = flips(b, i, turn);
+  if (!f.length) { toast("Hier ist kein Zug möglich"); return; }
+  doMove({ i, f });
+};
+$("#rNew").onclick = () => { if (!busy) newGame(); };
+$("#rHint").onclick = () => { hints = !hints; store.set("rev.hints", hints); labels(); draw(); };
+$("#rMode").onclick = e => {
+  const bt = e.target.closest("button"); if (!bt || busy) return;
+  mode = bt.dataset.m; store.set("rev.mode", mode); newGame();
+};
+addEventListener("resize", size);
+/* Theme-Wechsel (Einstellungen, System) → neu zeichnen */
+const mo = new MutationObserver(draw);
+mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-dark", "data-theme", "style", "class"] });
+onLeave(() => mo.disconnect());
+newGame(); size();
+})();
+</script>
+</body>
+</html>

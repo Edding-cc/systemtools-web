@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kopfrechnen-Duell · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);padding:0;touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+#duel{position:fixed;inset:0;z-index:70;display:none;user-select:none;-webkit-user-select:none;background:var(--bg);color:var(--text)}
+#duel.show{display:block}
+.half{position:absolute;left:0;right:0;height:50%;padding:12px 16px;text-align:center}
+.half.p1{bottom:0}
+.half.p2{top:0;transform:rotate(180deg)}
+.half .sc{font-size:15px;font-weight:600}
+.half.p1 .sc{color:var(--accent)}
+:root[data-dark="1"] .half.p1 .sc{color:color-mix(in srgb,var(--accent) 45%,#fff)}
+.half.p2 .sc{color:var(--err)}
+.half .q{font-size:40px;font-weight:700;font-family:var(--mono);margin:4px 0 10px;line-height:1.2}
+.half .ans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.half .ans button{height:64px;border:0;border-radius:14px;font-size:26px;font-weight:700;cursor:pointer;padding:0;background:var(--surface-2);color:var(--text);touch-action:none}
+.half .ans button.ok{background:#2e9d48!important;color:#fff!important}
+.half .ans button.no{background:#c0362c!important;color:#fff!important}
+.half.locked .ans button{opacity:.35}
+.half .st{min-height:1.4em;font-weight:600;margin-top:8px}
+#dExit{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:0;font-size:20px;cursor:pointer;z-index:2;background:var(--surface-2);color:var(--text)}
+#dMid{position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--border)}
+#solo .q{font-size:44px;font-weight:700;font-family:var(--mono);text-align:center;margin:8px 0 12px}
+#solo .ans button{min-height:64px;font-size:26px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Kopfrechnen-Duell</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <label class="fld" style="margin-top:0">Schwierigkeit</label>
+  <div class="chips" id="kLvl"><button data-l="0">Leicht</button><button data-l="1">Mittel</button><button data-l="2">Schwer</button></div>
+  <div class="card">
+    <h3>Duell zu zweit</h3>
+    <p class="muted help" style="font-size:14px;margin:0 0 10px">Legt das Telefon flach zwischen euch. Jede Seite bekommt dieselbe Aufgabe – wer zuerst richtig tippt, holt den Punkt. Ein falscher Tipp sperrt dich für diese Runde. Wer zuerst <b id="kGoalT">10</b> Punkte hat, gewinnt.</p>
+    <div class="chips" id="kGoal"><button data-g="5">Bis 5</button><button data-g="10">Bis 10</button><button data-g="20">Bis 20</button></div>
+    <button class="btn" id="kDuel">Duell starten</button>
+  </div>
+  <div class="card" id="solo">
+    <h3>Allein: 60 Sekunden</h3>
+    <div class="stats"><div><b id="sTime">60</b><span>Sekunden</span></div><div><b id="sPts">0</b><span>Richtig</span></div><div><b id="sBest">0</b><span>Rekord</span></div></div>
+    <div class="q" id="sQ">–</div>
+    <div class="ctl ans" id="sAns"><button></button><button></button><button></button></div>
+    <p class="msg" id="sMsg" role="status"></p>
+    <button class="btn" id="sGo">Start</button>
+  </div>
+</main>
+<div id="duel">
+  <div class="half p2" id="h2"><div class="sc" id="sc2"></div><div class="q"></div><div class="ans"><button></button><button></button><button></button></div><div class="st"></div></div>
+  <div id="dMid"></div>
+  <div class="half p1" id="h1"><div class="sc" id="sc1"></div><div class="q"></div><div class="ans"><button></button><button></button><button></button></div><div class="st"></div></div>
+  <button id="dExit" aria-label="Duell beenden">✕</button>
+</div>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Kopfrechnen: Duell zu zweit und 60-Sekunden-Solo
+   ========================================================= */
+let lvl = store.get("kr.lvl", 1), goal = store.get("kr.goal", 10);
+const best = store.get("kr.best", [0, 0, 0]);
+if (![0, 1, 2].includes(lvl)) lvl = 1;
+let task, pts = [0, 0], locked = [false, false], roundOver = false, nextT = 0;
+let soloTask, soloPts = 0, soloLeft = 0, soloT = 0, soloLock = false, lockT = 0;
+onLeave(() => { clearTimeout(nextT); clearInterval(soloT); clearTimeout(lockT); });
+
+const between = (a, b) => a + rnd(b - a + 1);
+/* Aufgabe mit Ergebnis und zwei plausiblen falschen Antworten */
+function make() {
+  let a, b, ans, tries = 0;
+  const ops = lvl === 0 ? ["+", "−"] : lvl === 1 ? ["+", "−", "×", "×"] : ["+", "−", "×", "÷"];
+  const op = ops[rnd(ops.length)];
+  if (op === "+") { a = lvl === 0 ? between(1, 10) : lvl === 1 ? between(10, 60) : between(50, 500); b = lvl === 0 ? between(1, 10) : lvl === 1 ? between(5, 40) : between(20, 499); ans = a + b; }
+  else if (op === "−") { a = lvl === 0 ? between(5, 20) : lvl === 1 ? between(20, 99) : between(100, 999); b = between(1, a - 1); ans = a - b; }
+  else if (op === "×") { a = lvl === 1 ? between(2, 10) : between(6, 19); b = lvl === 1 ? between(2, 10) : between(3, 12); ans = a * b; }
+  else { b = between(2, 12); ans = between(2, 15); a = b * ans; }
+  const q = a + " " + op + " " + b, opts = [ans];
+  while (opts.length < 3 && tries++ < 50) {
+    const d = op === "×" || op === "÷" ? [-b, b, -1, 1, 2, -2, 10, -10][rnd(8)] : [-1, 1, -2, 2, -10, 10, -3, 3][rnd(8)];
+    const k = ans + d;
+    if (k >= 0 && !opts.includes(k)) opts.push(k);
+  }
+  while (opts.length < 3) opts.push(ans + opts.length * 7);
+  return { q, ans, opts };
+}
+function chips() {
+  $$("#kLvl button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.l === lvl));
+  $$("#kGoal button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.g === goal));
+  $("#kGoalT").textContent = goal; $("#sBest").textContent = best[lvl];
+}
+
+/* ---------- Duell ---------- */
+const half = p => $(p === 0 ? "#h1" : "#h2");
+function scores() {
+  $("#sc1").textContent = "Du: " + pts[0] + " · Gegenüber: " + pts[1];
+  $("#sc2").textContent = "Du: " + pts[1] + " · Gegenüber: " + pts[0];
+}
+function round() {
+  task = make(); locked = [false, false]; roundOver = false;
+  for (let p = 0; p < 2; p++) {
+    const h = half(p); h.className = "half " + (p === 0 ? "p1" : "p2");
+    $(".q", h).textContent = task.q + " = ?"; $(".st", h).textContent = "";
+    const o = shuffle(task.opts.slice());
+    $$(".ans button", h).forEach((b, k) => { b.textContent = o[k]; b.className = ""; b.dataset.v = o[k]; });
+  }
+  scores();
+}
+function duelTap(p, b) {
+  if (roundOver || locked[p]) return;
+  const v = +b.dataset.v, q = 1 - p;
+  if (v === task.ans) {
+    roundOver = true; pts[p]++; b.className = "ok";
+    $(".st", half(p)).textContent = "Punkt für dich!"; $(".st", half(q)).textContent = "Zu langsam – " + task.q + " = " + task.ans;
+    scores();
+    if (pts[p] >= goal) {
+      $(".st", half(p)).textContent = "Gewonnen! " + pts[p] + " zu " + pts[q];
+      $(".st", half(q)).textContent = "Verloren, " + pts[q] + " zu " + pts[p] + ". Tippe ✕ oder warte auf die Revanche.";
+      nextT = setTimeout(() => { pts = [0, 0]; round(); }, 4000);
+      return;
+    }
+    nextT = setTimeout(round, 1100);
+  } else {
+    locked[p] = true; b.className = "no"; half(p).classList.add("locked");
+    $(".st", half(p)).textContent = "Falsch – gesperrt bis zur nächsten Aufgabe";
+    if (locked[q]) { roundOver = true; $(".st", half(0)).textContent = $(".st", half(1)).textContent = "Beide falsch: " + task.q + " = " + task.ans; nextT = setTimeout(round, 1600); }
+  }
+}
+function startDuel() {
+  clearTimeout(nextT);
+  pts = [0, 0]; $("#duel").className = "show"; round();
+  try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch {}
+}
+function endDuel() {
+  clearTimeout(nextT); $("#duel").className = "";
+  /* echtes Vollbild nur verlassen, wenn der App-Vollbildmodus nicht aktiv ist */
+  try { if (document.fullscreenElement && !isFs()) document.exitFullscreen().catch(() => {}); } catch {}
+}
+for (let p = 0; p < 2; p++) $$(".ans button", half(p)).forEach(b => onPress(b, () => duelTap(p, b)));
+
+/* ---------- Solo ---------- */
+function soloShow() {
+  const o = shuffle(soloTask.opts.slice());
+  $("#sQ").textContent = soloTask.q + " = ?";
+  $$("#sAns button").forEach((b, k) => { b.textContent = o[k]; b.dataset.v = o[k]; b.className = ""; b.disabled = false; });
+}
+function soloStart() {
+  soloPts = 0; soloLeft = 60; soloLock = false;
+  $("#sPts").textContent = 0; $("#sTime").textContent = 60; $("#sMsg").textContent = ""; $("#sGo").textContent = "Neu starten";
+  soloTask = make(); soloShow();
+  clearInterval(soloT);
+  soloT = setInterval(() => {
+    soloLeft--; $("#sTime").textContent = soloLeft;
+    if (soloLeft <= 0) soloEnd();
+  }, 1000);
+}
+function soloEnd() {
+  clearInterval(soloT); soloT = 0;
+  $$("#sAns button").forEach(b => { b.disabled = true; });
+  if (soloPts > best[lvl]) { best[lvl] = soloPts; store.set("kr.best", best); toast("Neuer Rekord!"); }
+  $("#sMsg").textContent = "Zeit um! " + soloPts + " richtig."; $("#sGo").textContent = "Nochmal"; chips();
+}
+function soloTap(b) {
+  if (!soloT || soloLock) return;
+  const ok = +b.dataset.v === soloTask.ans;
+  b.className = ok ? "ac" : "";
+  if (ok) {
+    soloPts++; $("#sPts").textContent = soloPts; $("#sMsg").textContent = ""; soloTask = make(); soloLock = true;
+    lockT = setTimeout(() => { soloLock = false; if (soloT) soloShow(); }, 150);
+  } else {
+    soloLeft = Math.max(0, soloLeft - 3); $("#sTime").textContent = soloLeft;
+    $("#sMsg").textContent = "Falsch: " + soloTask.q + " = " + soloTask.ans + " (−3 Sekunden)";
+    soloTask = make(); soloShow();
+    if (soloLeft <= 0) soloEnd();
+  }
+}
+$$("#sAns button").forEach(b => onPress(b, () => soloTap(b)));
+
+$("#kLvl").onclick = e => { const b = e.target.closest("button"); if (b) { lvl = +b.dataset.l; store.set("kr.lvl", lvl); chips(); if (soloT) soloEnd(); } };
+$("#kGoal").onclick = e => { const b = e.target.closest("button"); if (b) { goal = +b.dataset.g; store.set("kr.goal", goal); chips(); } };
+$("#kDuel").onclick = startDuel;
+$("#dExit").onclick = endDuel;
+$("#sGo").onclick = soloStart;
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("#duel").className) endDuel();
+  else if (e.key >= "1" && e.key <= "3" && e.key.length === 1 && soloT) soloTap($$("#sAns button")[+e.key - 1]);
+});
+chips();
+})();
+</script>
+</body>
+</html>
