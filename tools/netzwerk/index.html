@@ -50,15 +50,31 @@ function viewNetzwerk(app) {
   draw();
   c?.addEventListener("change", draw); addEventListener("online", draw); addEventListener("offline", draw);
   onLeave(() => { c?.removeEventListener("change", draw); removeEventListener("online", draw); removeEventListener("offline", draw); });
-  $("#pubGo").onclick = async () => {
-    $("#pub").innerHTML = "<p class='muted'>Frage ab …</p>";
-    try {
-      const t = await (await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store" })).text();
-      const o = Object.fromEntries(t.trim().split("\n").map(l => l.split("=")));
-      $("#pub").innerHTML = kv({ "IP-Adresse": o.ip, "Protokoll": o.ip?.includes(":") ? "IPv6" : "IPv4", "Land": o.loc, "Rechenzentrum": o.colo, "HTTP": o.http, "TLS": o.tls, "Cloudflare WARP": o.warp }) + `<button class="btn text" id="cpIp" style="margin-top:8px">IP kopieren</button>`;
-      $("#cpIp").onclick = () => copy(o.ip);
-    } catch { $("#pub").innerHTML = "<p class='err'>Abfrage fehlgeschlagen.</p>"; }
+  const showStart = msg => {
+    $("#pub").innerHTML = `<button class="btn tonal" id="pubGo">Abfragen</button><p class="muted" style="font-size:13px;margin:8px 0 0">Fragt <span class="mono">speed.cloudflare.com/cdn-cgi/trace</span> ab. Cloudflare sieht dabei deine IP-Adresse.</p>` +
+      (msg ? `<p class="err" style="margin:8px 0 0">${esc(msg)}</p>` : "");
+    $("#pubGo").onclick = query;
   };
+  let ctl = null;
+  onLeave(() => ctl?.abort());
+  const query = async () => {
+    $("#pub").innerHTML = "<p class='muted'>Frage ab …</p>";
+    ctl?.abort(); ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort("timeout"), 10000), sig = ctl.signal;
+    try {
+      const r = await fetch("https://speed.cloudflare.com/cdn-cgi/trace", { cache: "no-store", signal: sig });
+      if (!r.ok) { showStart(`Abfrage fehlgeschlagen (Status ${r.status}).`); return; }
+      const o = Object.fromEntries((await r.text()).trim().split("\n").map(l => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
+      if (!o.ip) { showStart("Abfrage fehlgeschlagen (unerwartete Antwort)."); return; }
+      $("#pub").innerHTML = kv({ "IP-Adresse": o.ip, "Protokoll": o.ip.includes(":") ? "IPv6" : "IPv4", "Land": o.loc, "Rechenzentrum": o.colo, "HTTP": o.http, "TLS": o.tls, "Cloudflare WARP": o.warp }) +
+        `<div class="row" style="margin-top:8px"><button class="btn text" id="cpIp">IP kopieren</button><button class="btn text" id="again">Erneut abfragen</button></div>`;
+      $("#cpIp").onclick = () => copy(o.ip);
+      $("#again").onclick = query;
+    } catch {
+      showStart(sig.reason === "timeout" ? "Zeitüberschreitung bei der Abfrage." : "Abfrage fehlgeschlagen. Keine Verbindung oder vom Browser blockiert.");
+    } finally { clearTimeout(to); }
+  };
+  showStart("");
 }
 
 viewNetzwerk($("#app"));
