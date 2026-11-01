@@ -60,12 +60,12 @@
 <main class="wrap" id="app">
   <div class="chips" id="sLvl"><button data-l="0">Leicht</button><button data-l="1">Mittel</button><button data-l="2">Schwer</button></div>
   <div class="stats"><div><b id="sTime">00:00</b><span>Zeit</span></div><div><b id="sLeft">–</b><span>Offen</span></div><div><b id="sErr">0</b><span>Fehler</span></div><div><b id="sBest">–</b><span>Bestzeit</span></div></div>
-  <div id="sg" role="grid" aria-label="Sudoku-Feld"></div>
+  <div id="sg" data-fit="1" role="grid" aria-label="Sudoku-Feld"></div>
   <p class="msg" id="sMsg" role="status"></p>
   <div class="ctl c5" id="sPad2"></div>
   <div class="ctl"><button id="sNotes" class="tonal" aria-pressed="false">Notizen: aus</button><button id="sHint" class="tonal">Tipp</button><button id="sNew" class="ac">Neu</button></div>
-  <div class="card"><label class="switch"><span>Fehler sofort markieren</span><input type="checkbox" id="sShowErr"></label></div>
-  <p class="muted" style="font-size:14px">Feld antippen, dann Zahl wählen. Im Notizenmodus werden kleine Kandidaten gesetzt. Tastatur: Ziffern, Pfeiltasten, Entf/Rücktaste löscht, N schaltet Notizen um. Das Rätsel bleibt gespeichert.</p>
+  <div class="card fsx"><label class="switch"><span>Fehler sofort markieren</span><input type="checkbox" id="sShowErr"></label></div>
+  <p class="muted help" style="font-size:14px">Feld antippen, dann Zahl wählen. Im Notizenmodus werden kleine Kandidaten gesetzt. Tastatur: Ziffern, Pfeiltasten, Entf/Rücktaste löscht, N schaltet Notizen um. Das Rätsel bleibt gespeichert.</p>
 </main>
 <script>
 (function () {

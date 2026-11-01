@@ -47,10 +47,10 @@
 <main class="wrap" id="app">
   <div class="chips" id="pSize"><button data-n="3">3×3</button><button data-n="4">4×4</button><button data-n="5">5×5</button></div>
   <div class="stats"><div><b id="pMoves">0</b><span>Züge</span></div><div><b id="pTime">00:00</b><span>Zeit</span></div><div><b id="pBest">–</b><span>Beste Züge</span></div></div>
-  <div id="pz" aria-label="Spielfeld"></div>
+  <div id="pz" data-fit="1" aria-label="Spielfeld"></div>
   <p class="msg" id="pMsg" role="status"></p>
   <div class="ctl"><button id="pNew" class="ac">Mischen</button><button id="pHelp" class="tonal" aria-pressed="false">Ziel zeigen</button></div>
-  <p class="muted" style="font-size:14px">Tippe auf ein Feld in der Reihe oder Spalte der Lücke oder wische (auch Pfeiltasten oder WASD). Ziel: Zahlen der Reihe nach, Lücke unten rechts.</p>
+  <p class="muted help" style="font-size:14px">Tippe auf ein Feld in der Reihe oder Spalte der Lücke oder wische (auch Pfeiltasten oder WASD). Ziel: Zahlen der Reihe nach, Lücke unten rechts.</p>
 </main>
 <script>
 (function () {

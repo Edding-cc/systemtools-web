@@ -154,10 +154,11 @@ function ui() {
 /* Wiedergabe: Bildschirm blinkt immer, Vibration und Taschenlampe (Kamerablitz) optional */
 function setTorch(on) { torchTrack?.applyConstraints({ advanced: [{ torch: on }] }).catch(() => {}); }
 function stop() {
+  const was = active;
   run++; active = false;
   clearTimeout(playing); playing = 0;
   flash.hidden = true; flash.classList.remove("on");
-  if (canVib) try { navigator.vibrate(0); } catch {}
+  if (canVib && was) try { navigator.vibrate(0); } catch {}
   torchStream?.getTracks().forEach(t => t.stop()); torchStream = torchTrack = null;
   playBtn.textContent = "Abspielen";
 }

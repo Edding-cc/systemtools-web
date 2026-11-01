@@ -45,13 +45,13 @@
 <main class="wrap" id="app">
   <div class="chips" id="sSpeed"><button data-v="0">Langsam</button><button data-v="1">Normal</button><button data-v="2">Schnell</button><button id="sWrap">Durch Wände</button></div>
   <div class="stats"><div><b id="sScore">0</b><span>Punkte</span></div><div><b id="sBest">0</b><span>Rekord</span></div></div>
-  <div id="sBoard"><canvas id="sc" aria-label="Spielfeld"></canvas></div>
+  <div id="sBoard" data-fit="1"><canvas id="sc" aria-label="Spielfeld"></canvas></div>
   <p class="msg" id="sMsg" role="status">Tippe auf Start</p>
   <div class="ctl" id="sPad">
     <button id="sStart" class="ac">Start</button><button data-d="up" aria-label="Hoch">↑</button><button id="sNew" class="tonal">Neu</button>
     <button data-d="left" aria-label="Links">←</button><button data-d="down" aria-label="Runter">↓</button><button data-d="right" aria-label="Rechts">→</button>
   </div>
-  <p class="muted" style="font-size:14px">Steuern per Pfeiltasten, WASD oder Wischen über das Spielfeld. Leertaste startet und pausiert. Die Schlange wird mit jedem Futter länger und etwas schneller.</p>
+  <p class="muted help" style="font-size:14px">Steuern per Pfeiltasten, WASD oder Wischen über das Spielfeld. Leertaste startet und pausiert. Die Schlange wird mit jedem Futter länger und etwas schneller.</p>
 </main>
 <script>
 (function () {

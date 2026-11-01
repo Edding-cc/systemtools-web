@@ -101,3 +101,20 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 a.iconbtn{text-decoration:none}
 /* Startseite: Gruppen */
 .group h2:first-child{margin-top:20px}
+/* Signal am Timer-Ende */
+body.alarm{background:var(--accent)}
+/* Vollbild (App-Seiten): Kopfzeile und Hilfetexte ausblenden, kleiner Knopf zum Beenden */
+:root{--fs-gain:0px}
+html.fs{--fs-gain:61px}
+#fsExit{float:right;margin:0 0 6px 8px;width:38px;height:38px;border-radius:50%;border:0;padding:0;cursor:pointer;display:none;place-items:center;background:var(--surface-2);color:var(--text);box-shadow:0 0 0 1px var(--border)}
+#fsExit svg{width:20px;height:20px}
+html.fs #fsExit{display:grid}
+html.fs header.top,html.fs .help{display:none!important}
+html.fs main.wrap{padding-top:6px;padding-bottom:8px}
+html.fs h2{margin-top:12px}
+html.fs .stats{margin-bottom:6px}
+html.fs .stats>div{padding:3px 4px}
+html.fs .stats b{font-size:17px}
+html.fs .stats span{font-size:11px}
+html.fs .chips button{min-height:32px;padding:4px 12px;font-size:13px}
+html.fs .ctl button{min-height:48px}
