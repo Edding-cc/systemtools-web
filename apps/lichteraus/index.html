@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lichter aus · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#lg{display:grid;gap:6px;margin:0 auto 12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#lg button{border:0;padding:0;cursor:pointer;border-radius:12px;aspect-ratio:1;background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--border);transition:background .12s}
+#lg button.on{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+#lg button:focus-visible{outline:3px solid var(--text);outline-offset:2px}
+#lg button.tip{animation:tip .5s 3}
+@keyframes tip{50%{transform:scale(.82)}}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Lichter aus</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="stats"><div><b id="lLevel">1</b><span>Level</span></div><div><b id="lMoves">0</b><span>Züge</span></div><div><b id="lMin">–</b><span>Lösbar in</span></div></div>
+  <div id="lg" aria-label="Spielfeld"></div>
+  <p class="msg" id="lMsg" role="status"></p>
+  <div class="ctl"><button id="lTip" class="tonal">Tipp</button><button id="lNext" class="ac">Neu</button><button id="lReset" class="tonal">Von vorn</button></div>
+  <p class="muted help" style="font-size:14px">Ein Feld antippen schaltet es und seine vier Nachbarn um. Ziel: alle Lichter aus. Jedes Rätsel ist lösbar; „Lösbar in“ nennt eine Zugzahl, mit der es sicher geht. Mit jedem gelösten Level wird es schwieriger.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Lichter aus
+   ========================================================= */
+const N = 5, GAP = 6;
+let level = Math.max(1, parseInt(store.get("lights.level", 1), 10) || 1);
+let gen, start, cells, user, moves, done, tipT = 0;
+onLeave(() => clearTimeout(tipT));
+
+function toggle(bd, i) {
+  const x = i % N, y = (i - x) / N;
+  bd[i] ^= 1;
+  if (x > 0) bd[i - 1] ^= 1;
+  if (x < N - 1) bd[i + 1] ^= 1;
+  if (y > 0) bd[i - N] ^= 1;
+  if (y < N - 1) bd[i + N] ^= 1;
+}
+const zero = () => new Array(N * N).fill(0);
+const lit = bd => bd.some(Boolean);
+// Rätsel aus zufälligen Zügen erzeugen: so ist es garantiert lösbar
+function newPuzzle() {
+  const n = Math.min(3 + level, 18);
+  do {
+    gen = zero(); cells = zero();
+    const order = shuffle(Array.from({ length: N * N }, (_, k) => k));
+    for (let k = 0; k < n; k++) { gen[order[k]] = 1; toggle(cells, order[k]); }
+  } while (!lit(cells));
+  start = cells.slice(); user = zero(); moves = 0; done = false;
+  $("#lMsg").textContent = ""; render();
+}
+const minMoves = () => gen.reduce((c, g, k) => c + (g ^ user[k]), 0);
+function size() {
+  const W = fitWidth(360, 1, $("#lg")), s = Math.floor((W - GAP * (N - 1)) / N);
+  $("#lg").style.gridTemplateColumns = `repeat(${N},${s}px)`;
+  $("#lg").style.width = s * N + GAP * (N - 1) + "px";
+}
+function render() {
+  clearTimeout(tipT);
+  $("#lg").innerHTML = cells.map((c, k) => `<button data-i="${k}" class="${c ? "on" : ""}" aria-label="Feld ${k + 1} ${c ? "an" : "aus"}"></button>`).join("");
+  $("#lLevel").textContent = level; $("#lMoves").textContent = moves; $("#lMin").textContent = done ? "–" : minMoves();
+  $("#lNext").textContent = done ? "Nächstes Level" : "Neu";
+}
+function press(i) {
+  if (done) return;
+  toggle(cells, i); user[i] ^= 1; moves++;
+  if (!lit(cells)) {
+    done = true; level++; store.set("lights.level", level);
+    $("#lMsg").textContent = "Alle Lichter aus – geschafft in " + moves + (moves === 1 ? " Zug!" : " Zügen!");
+  }
+  render();
+}
+$("#lg").onclick = e => { const b = e.target.closest("button"); if (b) press(+b.dataset.i); };
+$("#lNext").onclick = newPuzzle;
+$("#lReset").onclick = () => { if (done) return; cells = start.slice(); user = zero(); moves = 0; $("#lMsg").textContent = ""; render(); };
+$("#lTip").onclick = () => {
+  if (done) return;
+  const k = gen.findIndex((g, i) => g ^ user[i]);
+  if (k < 0) return;
+  $("#lg").children[k].classList.add("tip");
+  clearTimeout(tipT); tipT = setTimeout(render, 1600);
+};
+addEventListener("resize", size);
+onLeave(() => removeEventListener("resize", size));
+size(); newPuzzle();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Farbfolge · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#sPads{display:grid;grid-template-columns:1fr 1fr;margin:0 auto 12px;user-select:none;-webkit-user-select:none}
+#sPads button{border:0;cursor:pointer;padding:0;font-size:28px;font-weight:700;color:rgba(0,0,0,.35);transition:opacity .08s;touch-action:none}
+#sPads button.dim{opacity:.38}
+#sPads button.lit{opacity:1;box-shadow:0 0 0 4px #ffffff inset}
+#sPads button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Farbfolge</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="sOpt"><button data-s="0">Normal</button><button data-s="1">Schnell</button><button id="sSnd">Ton</button></div>
+  <div class="stats"><div><b id="sLen">0</b><span>Folge</span></div><div><b id="sBest">0</b><span>Rekord</span></div></div>
+  <div id="sPads"><button data-i="0" style="background:#43b047;border-radius:60% 12px 12px 12px">1</button><button data-i="1" style="background:#e0483e;border-radius:12px 60% 12px 12px">2</button><button data-i="2" style="background:#e8c21a;border-radius:12px 12px 12px 60%">3</button><button data-i="3" style="background:#3a6fe0;border-radius:12px 12px 60% 12px">4</button></div>
+  <p class="msg" id="sMsg" role="status">Tippe auf Start</p>
+  <div class="ctl c2"><button id="sStart" class="ac">Start</button><button id="sReplay" class="tonal">Nochmal zeigen</button></div>
+  <p class="muted help" style="font-size:14px">Merke dir, in welcher Reihenfolge die Felder aufleuchten, und tippe sie danach genauso an. Jede Runde kommt ein Feld dazu. „Nochmal zeigen“ geht einmal pro Spiel. Tastatur: 1 bis 4.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Farbfolge
+   ========================================================= */
+const FREQ = [392, 330, 262, 196];
+let fast = store.get("simon.fast", 0) ? 1 : 0, snd = store.get("simon.snd", true);
+const best = store.get("simon.best", [0, 0]);
+let seq = [], pos = 0, phase = "idle", replayed = false, ac = null;
+const timers = [], pads = $$("#sPads button");
+onLeave(() => { clearTimers(); try { ac?.close(); } catch {} });
+
+function hud() {
+  $$("#sOpt button[data-s]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.s === fast));
+  $("#sSnd").setAttribute("aria-pressed", !!snd);
+  $("#sLen").textContent = seq.length; $("#sBest").textContent = best[fast] || 0;
+  $("#sReplay").disabled = phase !== "input" || replayed;
+  $("#sStart").textContent = phase === "idle" || phase === "over" ? "Start" : "Neu";
+}
+function size() {
+  const W = fitWidth(360, 1, $("#sPads")), s = Math.floor(W * 0.48);
+  $("#sPads").style.width = W + "px"; $("#sPads").style.gap = (W - 2 * s) + "px";
+  pads.forEach(p => { p.style.height = s + "px"; });
+}
+function tone(i, ms) {
+  if (!snd) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ac ||= new AC();
+    if (ac.state === "suspended") ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime;
+    o.type = "triangle"; o.frequency.value = FREQ[i]; o.connect(g); g.connect(ac.destination);
+    g.gain.setValueAtTime(0.2, t0); g.gain.setValueAtTime(0, t0 + ms / 1000);
+    o.start(t0); o.stop(t0 + ms / 1000 + 0.02);
+  } catch {}
+}
+const setAll = cls => pads.forEach(p => { p.className = cls; });
+function light(i, ms) {
+  pads.forEach((p, k) => { p.className = k === i ? "lit" : "dim"; });
+  tone(i, ms);
+  timers.push(setTimeout(() => setAll(phase === "input" ? "" : "dim"), ms));
+}
+function clearTimers() { while (timers.length) clearTimeout(timers.pop()); }
+function speed() { const base = fast ? 380 : 560; return Math.max(fast ? 170 : 240, base - seq.length * 18); }
+function show() {
+  const on = speed(), gap = Math.round(on * 0.45);
+  phase = "show"; pos = 0; hud(); clearTimers();
+  $("#sMsg").textContent = "Gut aufpassen …";
+  setAll("dim");
+  seq.forEach((v, k) => timers.push(setTimeout(() => light(v, on), 600 + k * (on + gap))));
+  timers.push(setTimeout(() => {
+    phase = "input"; hud(); setAll("");
+    $("#sMsg").textContent = "Du bist dran";
+  }, 600 + seq.length * (on + gap)));
+}
+function next() { seq.push(rnd(4)); show(); }
+function start() { clearTimers(); seq = []; replayed = false; next(); }
+function press(i) {
+  if (phase !== "input") return;
+  light(i, 180);
+  if (seq[pos] !== i) {
+    phase = "over"; clearTimers();
+    const reached = seq.length - 1;
+    if (reached > (best[fast] || 0)) { best[fast] = reached; store.set("simon.best", best); }
+    $("#sMsg").textContent = "Falsch! Du hast " + reached + (reached === 1 ? " Feld" : " Felder") + " geschafft.";
+    pads.forEach((p, k) => { p.className = k === seq[pos] ? "lit" : "dim"; });
+    hud(); return;
+  }
+  pos++;
+  if (pos === seq.length) {
+    phase = "wait"; hud();
+    if (seq.length > (best[fast] || 0)) { best[fast] = seq.length; store.set("simon.best", best); }
+    $("#sMsg").textContent = "Richtig!";
+    timers.push(setTimeout(next, 700));
+  }
+}
+pads.forEach(b => onPress(b, () => press(+b.dataset.i)));
+$("#sStart").onclick = start;
+$("#sReplay").onclick = () => { if (phase === "input" && !replayed) { replayed = true; show(); } };
+$("#sOpt").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "sSnd") { snd = !snd; store.set("simon.snd", snd); }
+  else { fast = +b.dataset.s; store.set("simon.fast", fast); clearTimers(); phase = "idle"; seq = []; $("#sMsg").textContent = "Tippe auf Start"; setAll(""); }
+  hud();
+};
+const onKey = e => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key >= "1" && e.key <= "4" && e.key.length === 1) { e.preventDefault(); press(+e.key - 1); }
+};
+addEventListener("keydown", onKey);
+addEventListener("resize", size);
+onLeave(() => { removeEventListener("keydown", onKey); removeEventListener("resize", size); });
+size(); hud();
+})();
+</script>
+</body>
+</html>

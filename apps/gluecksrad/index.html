@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Glücksrad · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#wBoard{margin:0 auto 4px;touch-action:none;user-select:none;-webkit-user-select:none}
+#cv{display:block;cursor:pointer}
+#wRes{font-size:26px;font-weight:700;text-align:center;min-height:1.4em;margin:4px 0 8px;overflow-wrap:anywhere}
+#wList{min-height:150px;resize:vertical}
+#wHist{font-size:14px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Glücksrad</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div id="wBoard"><canvas id="cv" aria-label="Glücksrad, antippen zum Drehen"></canvas></div>
+  <div id="wRes" role="status"></div>
+  <div class="ctl c2"><button id="wSpin" class="ac">Drehen</button><button id="wDrop" class="tonal" aria-pressed="false">Gezogenes entfernen</button></div>
+  <div class="card fsx">
+    <h3>Einträge</h3>
+    <div class="chips" id="wPre"><button data-p="0">Ja / Nein</button><button data-p="1">1 bis 6</button><button data-p="2">Essen</button><button data-p="3">Wer fängt an?</button></div>
+    <label class="fld" for="wList">Ein Eintrag pro Zeile (2 bis 24)</label>
+    <textarea id="wList" rows="6"></textarea>
+  </div>
+  <div class="card fsx"><h3>Verlauf</h3><div id="wHist" class="muted">Noch nichts gedreht.</div></div>
+  <p class="muted help" style="font-size:14px">Das Ergebnis wird mit dem Zufallsgenerator des Browsers (<span class="mono">crypto</span>) bestimmt, die Drehung zeigt es nur an. Mit „Gezogenes entfernen“ fliegt jedes Ergebnis aus der Liste – praktisch für Reihenfolgen.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Glücksrad
+   ========================================================= */
+const COLS = ["#e0483e", "#3a6fe0", "#43b047", "#f4c430", "#8e5bd1", "#ee7a22", "#29a0c6", "#d14f9c", "#7cb342", "#5c6bc0", "#ff8a65", "#00897b"];
+const PRE = [["Ja", "Nein"], ["1", "2", "3", "4", "5", "6"], ["Pizza", "Pasta", "Salat", "Suppe", "Burger", "Curry"], ["Person 1", "Person 2", "Person 3", "Person 4"]];
+const FONT = "system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
+const TWO = Math.PI * 2;
+const cv = $("#cv"), ctx = cv.getContext("2d"), list = $("#wList");
+let D = 300, items = [], rot = 0, spinning = false, drop = !!store.get("wheel.drop", false), raf = 0;
+const hist = [];
+onLeave(() => cancelAnimationFrame(raf));
+
+const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function load() {
+  const v = store.get("wheel.list", null);
+  list.value = v == null ? PRE[0].join("\n") : v;
+  parse();
+}
+function parse() { items = list.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean).slice(0, 24); }
+function size() {
+  const r = devicePixelRatio || 1;
+  D = fitWidth(360, 1, $("#wBoard"));
+  cv.style.width = cv.style.height = D + "px"; $("#wBoard").style.width = D + "px";
+  cv.width = cv.height = Math.round(D * r);
+  ctx.setTransform(r, 0, 0, r, 0, 0);
+  draw();
+}
+function color(i, n) { let c = i % COLS.length; if (i === n - 1 && n > 1 && c === 0) c = 1; return COLS[c]; }
+function lum(hex) { const [r, g, b] = hexToRgb(hex); return (r * 299 + g * 587 + b * 114) / 1000; }
+function draw() {
+  const n = items.length, cx = D / 2, cy = D / 2 + 6, R = D / 2 - 14;
+  ctx.clearRect(0, 0, D, D);
+  if (n < 2) {
+    ctx.fillStyle = tok("--surface-2"); ctx.beginPath(); ctx.arc(cx, cy, R, 0, TWO); ctx.fill();
+    ctx.fillStyle = tok("--muted"); ctx.font = "15px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("Mindestens zwei Einträge", cx, cy); return;
+  }
+  const seg = TWO / n, fs = Math.max(11, Math.min(20, Math.round(R * 0.6 / Math.max(4, n) * 2.2)));
+  for (let k = 0; k < n; k++) {
+    const a0 = -Math.PI / 2 + rot + k * seg, c = color(k, n);
+    ctx.fillStyle = c;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a0 + seg); ctx.closePath(); ctx.fill();
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(a0 + seg / 2);
+    ctx.fillStyle = lum(c) > 150 ? "#111111" : "#ffffff";
+    ctx.font = "600 " + fs + "px " + FONT; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    let label = items[k];
+    while (label.length > 1 && ctx.measureText(label).width > R * 0.72) label = label.slice(0, -2) + "…";
+    ctx.fillText(label, R - 12, 0);
+    ctx.restore();
+  }
+  ctx.fillStyle = tok("--surface"); ctx.beginPath(); ctx.arc(cx, cy, R * 0.12, 0, TWO); ctx.fill();
+  ctx.strokeStyle = tok("--border"); ctx.lineWidth = 2; ctx.stroke();
+  // Zeiger oben
+  ctx.fillStyle = tok("--text"); ctx.beginPath(); ctx.moveTo(cx - 12, 2); ctx.lineTo(cx + 12, 2); ctx.lineTo(cx, 30); ctx.closePath(); ctx.fill();
+}
+function current() { const n = items.length, seg = TWO / n, a = ((-rot) % TWO + TWO) % TWO; return Math.floor(a / seg) % n; }
+function spin() {
+  if (spinning) return;
+  parse();
+  if (items.length < 2) { toast("Bitte mindestens zwei Einträge"); return; }
+  const n = items.length, seg = TWO / n, win = rnd(n), off = (0.15 + rnd(700) / 1000) * seg;
+  const target = win * seg + off, start = rot;
+  const delta = ((-target - rot) % TWO + TWO) % TWO + TWO * (5 + rnd(3)), dur = 4200 + rnd(800);
+  let t0 = 0;
+  spinning = true; $("#wRes").textContent = ""; $("#wSpin").disabled = true;
+  const step = t => {
+    if (!t0) t0 = t;
+    const p = Math.min(1, (t - t0) / dur), e = 1 - (1 - p) ** 3;
+    rot = start + delta * e; draw();
+    if (p < 1) { raf = requestAnimationFrame(step); return; }
+    rot %= TWO; spinning = false; $("#wSpin").disabled = false;
+    done(items[current()]);
+  };
+  raf = requestAnimationFrame(step);
+}
+function done(res) {
+  $("#wRes").textContent = res;
+  hist.unshift(res); if (hist.length > 12) hist.pop();
+  $("#wHist").textContent = hist.join(" · ");
+  if (drop) {
+    const k = items.indexOf(res);
+    if (k >= 0) { items.splice(k, 1); list.value = items.join("\n"); store.set("wheel.list", list.value); rot = 0; draw(); }
+  }
+}
+function dropBtn() { $("#wDrop").className = drop ? "ac" : "tonal"; $("#wDrop").setAttribute("aria-pressed", drop); }
+function onInput() { if (spinning) return; store.set("wheel.list", list.value); parse(); rot = 0; draw(); }
+$("#wSpin").onclick = spin;
+onPress(cv, spin);
+$("#wDrop").onclick = () => { drop = !drop; store.set("wheel.drop", drop); dropBtn(); toast(drop ? "Ergebnisse werden aus der Liste entfernt" : "Liste bleibt unverändert"); };
+list.oninput = onInput;
+$("#wPre").onclick = e => {
+  const b = e.target.closest("button"); if (!b || spinning) return;
+  list.value = PRE[+b.dataset.p].join("\n"); onInput();
+};
+addEventListener("resize", size);
+onLeave(() => removeEventListener("resize", size));
+// Theme-Wechsel (z. B. Systemmodus) neu zeichnen
+const mo = new MutationObserver(() => draw());
+mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-dark", "style"] });
+onLeave(() => mo.disconnect());
+load(); dropBtn(); size();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reaktionstest · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#rPad{height:280px;border-radius:16px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:16px;user-select:none;-webkit-user-select:none;margin-bottom:12px;background:var(--surface-2);color:var(--text);touch-action:none}
+#rPad b{display:block;font-size:40px;line-height:1.1;font-variant-numeric:tabular-nums}
+#rPad span{display:block;font-size:16px;margin-top:8px}
+#rPad.wait{background:#c0362c;color:#fff}
+#rPad.go{background:#2e9d48;color:#fff}
+#rTries{display:flex;flex-wrap:wrap;gap:6px}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Reaktionstest</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="stats"><div><b id="rAvg">–</b><span>Schnitt (ms)</span></div><div><b id="rBest">–</b><span>Bester Schnitt</span></div><div><b id="rTop">–</b><span>Schnellster</span></div></div>
+  <div id="rPad" role="button" tabindex="0" aria-live="polite"><div><b id="rBig">Start</b><span id="rSmall">Tippe hier, um zu beginnen</span></div></div>
+  <div class="card fsx"><h3>Diese Serie</h3><div id="rTries" class="mono"></div></div>
+  <div class="ctl c2 fsx"><button id="rRestart" class="tonal">Serie neu</button><button id="rClear" class="tonal">Rekorde löschen</button></div>
+  <p class="muted help" style="font-size:14px">Wenn das Feld rot wird, warte. Sobald es grün wird, tippe so schnell du kannst. Fünf Versuche ergeben einen Schnitt. Die Zeit enthält auch die Verzögerung von Bildschirm und Touch, Werte sind also zwischen Geräten nur grob vergleichbar.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Reaktionstest
+   ========================================================= */
+const ROUNDS = 5;
+const rec = Object.assign({ avg: 0, top: 0 }, store.get("react.rec", {}));
+const pad = $("#rPad");
+let state = "idle", tries = [], t0 = 0, timer = 0, raf = 0;
+onLeave(() => { clearTimeout(timer); cancelAnimationFrame(raf); });
+
+function show(cls, big, small) { pad.className = cls || ""; $("#rBig").textContent = big; $("#rSmall").textContent = small; }
+const avg = () => tries.length ? Math.round(tries.reduce((a, b) => a + b, 0) / tries.length) : 0;
+function hud() {
+  $("#rTries").innerHTML = Array.from({ length: ROUNDS }, (_, k) => `<span class="badge">${k + 1}: ${tries[k] != null ? tries[k] + " ms" : "–"}</span>`).join("");
+  $("#rAvg").textContent = tries.length ? avg() : "–";
+  $("#rBest").textContent = rec.avg || "–"; $("#rTop").textContent = rec.top || "–";
+}
+function size() {
+  // Im Vollbild darf das Feld den freien Platz nutzen
+  pad.style.height = isFs() ? Math.max(160, Math.min(560, availHeight(pad))) + "px" : "";
+}
+function arm() {
+  state = "wait"; show("wait", "Warten …", "Tippe erst, wenn es grün wird");
+  t0 = 0;
+  timer = setTimeout(() => {
+    state = "go"; show("go", "Jetzt!", "Tippen!");
+    t0 = performance.now();
+    // Startzeit erst beim nächsten Bild, also wenn Grün wirklich angezeigt wird
+    raf = requestAnimationFrame(t => { t0 = performance.now(); });
+  }, 1500 + rnd(3000));
+}
+function tap() {
+  if (state === "idle" || state === "result" || state === "early") {
+    if (tries.length >= ROUNDS) { tries = []; hud(); }
+    arm(); return;
+  }
+  if (state === "wait") {
+    clearTimeout(timer); state = "early";
+    show("", "Zu früh!", "Tippe, um diesen Versuch zu wiederholen"); return;
+  }
+  if (state === "go") {
+    cancelAnimationFrame(raf);
+    const ms = Math.round(performance.now() - t0);
+    tries.push(ms); state = "result";
+    if (!rec.top || ms < rec.top) rec.top = ms;
+    if (tries.length >= ROUNDS) {
+      const a = avg();
+      if (!rec.avg || a < rec.avg) { rec.avg = a; toast("Neuer Bestwert!"); }
+      show("", a + " ms", "Schnitt aus " + ROUNDS + " Versuchen – tippe für eine neue Serie");
+    } else {
+      show("", ms + " ms", "Versuch " + tries.length + " von " + ROUNDS + " – tippe für den nächsten");
+    }
+    store.set("react.rec", rec); hud();
+  }
+}
+onPress(pad, tap);
+const onKey = e => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName) || e.repeat) return;
+  if (e.key === " " || e.key === "Enter") { e.preventDefault(); tap(); }
+};
+addEventListener("keydown", onKey);
+$("#rRestart").onclick = () => { clearTimeout(timer); cancelAnimationFrame(raf); tries = []; state = "idle"; show("", "Start", "Tippe hier, um zu beginnen"); hud(); };
+$("#rClear").onclick = () => { rec.avg = 0; rec.top = 0; store.set("react.rec", rec); hud(); };
+addEventListener("resize", size);
+onLeave(() => { removeEventListener("keydown", onKey); removeEventListener("resize", size); });
+hud(); size();
+})();
+</script>
+</body>
+</html>

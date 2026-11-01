@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laufschrift · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal{background:var(--accent-soft)}
+.ctl button:disabled{opacity:.5;cursor:default}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.center{text-align:center}
+.mt{margin-top:12px}
+#lsOv{position:fixed;inset:0;z-index:80;overflow:hidden;cursor:pointer;display:none;touch-action:manipulation}
+#lsOv.show{display:block}
+#lsTx{position:absolute;left:0;white-space:nowrap;font-weight:700;will-change:transform}
+#lsOv.blink #lsTx{animation:blink 1s steps(2,start) infinite}
+@keyframes blink{to{visibility:hidden}}
+#lsPrev{border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:22px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#lsCols{display:flex;flex-wrap:wrap;gap:8px}
+.cpair{width:44px;height:44px;border-radius:12px;cursor:pointer;font-weight:700;font-size:18px;padding:0;border:2px solid transparent}
+.cpair[aria-pressed="true"]{outline:3px solid var(--text);outline-offset:2px}
+#lsSpeed:disabled{opacity:.5}
+#lsCard{display:flow-root}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Laufschrift</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="card" id="lsCard">
+    <label class="fld" for="lsText" style="margin-top:0">Text</label>
+    <input type="text" id="lsText" maxlength="200" autocomplete="off">
+    <label class="fld">Farben</label>
+    <div id="lsCols"></div>
+    <label class="fld">Größe</label>
+    <div class="chips" id="lsSize"><button data-v="35">Klein</button><button data-v="55">Mittel</button><button data-v="75">Groß</button><button data-v="92">Riesig</button></div>
+    <label class="fld">Bewegung</label>
+    <div class="chips" id="lsMode"><button data-v="left">Nach links</button><button data-v="right">Nach rechts</button><button data-v="still">Stehend</button><button id="lsBlink">Blinken</button></div>
+    <label class="fld" for="lsSpeed">Tempo</label>
+    <input type="range" id="lsSpeed" min="1" max="10" step="1">
+    <label class="fld">Vorschau</label>
+    <div id="lsPrev"></div>
+  </div>
+  <div class="ctl c2"><button id="lsGo" class="ac">Anzeigen</button><button id="lsTips" class="tonal" aria-expanded="false">Vorlagen</button></div>
+  <div class="chips" id="lsTpl" hidden><button>Hallo!</button><button>Herzlichen Glückwunsch!</button><button>Bitte nicht stören</button><button>Taxi</button><button>Willkommen</button><button>Zugabe!</button></div>
+  <p class="muted help" style="font-size:14px">Dreh das Telefon quer, um mehr Platz zu haben. Antippen oder Esc beendet die Anzeige. Während der Anzeige bleibt der Bildschirm an, sofern der Browser das unterstützt.</p>
+</main>
+<div id="lsOv" role="dialog" aria-label="Laufschrift, antippen zum Beenden"><span id="lsTx"></span></div>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Laufschrift
+   ========================================================= */
+const PAIRS = [["#ffffff", "#000000"], ["#ffd400", "#000000"], ["#ff3b30", "#000000"], ["#34c759", "#000000"], ["#00c8ff", "#000000"], ["#ff4fb0", "#000000"], ["#000000", "#ffffff"], ["#ffffff", "#c0362c"], ["#ffffff", "#1f3a5f"], ["#000000", "#ffd400"]];
+const SIZES = [35, 55, 75, 92], MODES = ["left", "right", "still"];
+const cfg = Object.assign({ text: "Hallo!", pair: 1, size: 75, mode: "left", blink: false, speed: 5 }, store.get("banner", {}));
+if (!PAIRS[cfg.pair]) cfg.pair = 1;
+if (!SIZES.includes(cfg.size)) cfg.size = 75;
+if (!MODES.includes(cfg.mode)) cfg.mode = "left";
+const ov = $("#lsOv"), tx = $("#lsTx");
+let running = false, x = 0, tw = 0, last = 0, fs = 0, raf = 0, ownFs = false, lock = null;
+
+const save = () => store.set("banner", cfg);
+function ui() {
+  $("#lsCols").innerHTML = PAIRS.map(([c, b], k) => `<button class="cpair" data-i="${k}" style="color:${c};background:${b};border-color:${c}" aria-pressed="${k === cfg.pair}" aria-label="Farbkombination ${k + 1}">A</button>`).join("");
+  $$("#lsSize button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === cfg.size));
+  $$("#lsMode button[data-v]").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === cfg.mode));
+  $("#lsBlink").setAttribute("aria-pressed", cfg.blink);
+  $("#lsSpeed").value = cfg.speed; $("#lsSpeed").disabled = cfg.mode === "still";
+  const p = $("#lsPrev"); p.textContent = cfg.text || " "; p.style.color = PAIRS[cfg.pair][0]; p.style.background = PAIRS[cfg.pair][1];
+}
+function setFont(px, vh) { fs = px; tx.style.fontSize = fs + "px"; tx.style.lineHeight = fs + "px"; tx.style.top = Math.round((vh - fs) / 2) + "px"; tw = tx.offsetWidth; }
+function layout() {
+  const vw = innerWidth, vh = innerHeight;
+  setFont(Math.max(24, Math.round(vh * cfg.size / 100)), vh);
+  if (cfg.mode === "still") {
+    // stehender Text: so verkleinern, dass er in die Breite passt
+    if (tw > vw * 0.94) setFont(Math.max(16, Math.floor(fs * vw * 0.94 / tw)), vh);
+    x = Math.round((vw - tw) / 2); place();
+  }
+  return vw;
+}
+const place = () => { tx.style.transform = `translateX(${Math.round(x)}px)`; };
+function frame(t) {
+  if (!running) return;
+  const vw = innerWidth, dt = last ? Math.min(0.05, (t - last) / 1000) : 0.016, v = fs * (0.25 + cfg.speed * 0.22);
+  last = t;
+  if (cfg.mode === "left") { x -= v * dt; if (x < -tw) x = vw; }
+  else if (cfg.mode === "right") { x += v * dt; if (x > vw) x = -tw; }
+  place(); raf = requestAnimationFrame(frame);
+}
+async function wake(on) {
+  try {
+    if (on && "wakeLock" in navigator) lock = await navigator.wakeLock.request("screen");
+    else if (!on && lock) { await lock.release(); lock = null; }
+  } catch { lock = null; }
+}
+function show() {
+  tx.textContent = cfg.text || " ";
+  ov.style.background = PAIRS[cfg.pair][1]; tx.style.color = PAIRS[cfg.pair][0];
+  ov.className = "show" + (cfg.blink ? " blink" : "");
+  // Echtes Vollbild nur anfordern (und später beenden), wenn es nicht schon aktiv ist
+  if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+    ownFs = true;
+    document.documentElement.requestFullscreen().catch(() => { ownFs = false; });
+  }
+  wake(true);
+  const vw = layout();
+  if (cfg.mode === "left") x = vw; else if (cfg.mode === "right") x = -tw;
+  place();
+  running = cfg.mode !== "still"; last = 0;
+  cancelAnimationFrame(raf);
+  if (running) raf = requestAnimationFrame(frame);
+}
+function hide() {
+  if (!ov.className) return;
+  running = false; cancelAnimationFrame(raf); ov.className = "";
+  wake(false);
+  if (ownFs) { ownFs = false; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+}
+$("#lsText").value = cfg.text;
+$("#lsText").oninput = e => { cfg.text = e.target.value; save(); ui(); };
+$("#lsText").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); show(); } };
+$("#lsCols").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.pair = +b.dataset.i; save(); ui(); } };
+$("#lsSize").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.size = +b.dataset.v; save(); ui(); } };
+$("#lsMode").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "lsBlink") cfg.blink = !cfg.blink; else cfg.mode = b.dataset.v;
+  save(); ui();
+};
+$("#lsSpeed").oninput = e => { cfg.speed = parseInt(e.target.value, 10) || 5; save(); };
+$("#lsGo").onclick = show;
+$("#lsTips").onclick = e => { const t = $("#lsTpl"); t.hidden = !t.hidden; e.currentTarget.setAttribute("aria-expanded", !t.hidden); };
+$("#lsTpl").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.text = b.textContent; $("#lsText").value = cfg.text; save(); ui(); } };
+ov.onclick = hide;
+const onKey = e => { if (e.key === "Escape" && ov.className) hide(); };
+// Verlässt der Browser das selbst angeforderte Vollbild (Esc, Zurück), Anzeige ebenfalls beenden
+const onFs = () => { if (ownFs && !document.fullscreenElement) { ownFs = false; hide(); } };
+const onResize = () => {
+  if (!ov.className) return;
+  const vw = layout();
+  if (cfg.mode !== "still" && (x > vw || x < -tw)) x = cfg.mode === "left" ? vw : -tw;
+};
+// Wake Lock geht beim Wechsel in den Hintergrund verloren
+const onVis = () => { if (ov.className && document.visibilityState === "visible") wake(true); };
+addEventListener("keydown", onKey);
+addEventListener("resize", onResize);
+document.addEventListener("fullscreenchange", onFs);
+document.addEventListener("visibilitychange", onVis);
+onLeave(() => {
+  cancelAnimationFrame(raf); running = false; wake(false);
+  removeEventListener("keydown", onKey); removeEventListener("resize", onResize);
+  document.removeEventListener("fullscreenchange", onFs); document.removeEventListener("visibilitychange", onVis);
+});
+ui();
+})();
+</script>
+</body>
+</html>
