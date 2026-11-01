@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vier in einer Reihe · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stats>div{flex:1;min-width:0;background:var(--surface-2);border-radius:12px;padding:6px 4px;text-align:center}
+.stats b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:12px;color:var(--muted)}
+.ctl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;user-select:none;-webkit-user-select:none}
+.ctl.c2{grid-template-columns:1fr 1fr}
+.ctl button{min-height:56px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:var(--surface-2);color:var(--text);padding:0;touch-action:manipulation}
+.ctl button.ac{background:var(--accent);color:var(--on-accent)}
+.ctl button.tonal,.ctl button:active{background:var(--accent-soft)}
+.msg{text-align:center;min-height:1.5em;margin:0 0 8px;font-weight:600}
+.board{margin:0 auto 12px;touch-action:none;user-select:none;-webkit-user-select:none;position:relative}
+#cv{display:block;cursor:pointer}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Vier in einer Reihe</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+  <div class="chips" id="cMode"><button data-m="easy">Leicht</button><button data-m="mid">Mittel</button><button data-m="hard">Schwer</button><button data-m="two">2 Spieler</button></div>
+  <div class="stats"><div><b id="cA">0</b><span id="cAl">Du (Rot)</span></div><div><b id="cD">0</b><span>Unentschieden</span></div><div><b id="cB">0</b><span id="cBl">Computer (Gelb)</span></div></div>
+  <div class="board" id="cBoard"><canvas id="cv" aria-label="Spielfeld"></canvas></div>
+  <p class="msg" id="cMsg" role="status"></p>
+  <div class="ctl c2"><button id="cNew" class="ac">Neue Runde</button><button id="cReset" class="tonal">Stand löschen</button></div>
+  <p class="muted help" style="font-size:14px">Tippe auf eine Spalte, um einen Stein einzuwerfen. Wer zuerst vier Steine waagerecht, senkrecht oder schräg in eine Reihe bringt, gewinnt. Tastatur: 1 bis 7.</p>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Vier in einer Reihe
+   ========================================================= */
+const C = 7, R = 6, ORDER = [3, 2, 4, 1, 5, 0, 6], COL = ["", "#e0483e", "#e8b81a"], SC = [0, 1, 8, 40, 0];
+const DEPTH = { easy: 2, mid: 4, hard: 6 };
+let mode = store.get("c4.mode", "mid"), score = store.get("c4.score", { a: 0, b: 0, d: 0 });
+if (!(mode in DEPTH) && mode !== "two") mode = "mid";
+const cv = $("#cv"), ctx = cv.getContext("2d");
+let cs = 0, b = Array(C * R).fill(0), h, turn, over, moves, win, starter = 1, busy = false, fall = null, rafId = 0, cpuT = 0;
+onLeave(() => { cancelAnimationFrame(rafId); clearTimeout(cpuT); });
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* alle 69 möglichen Viererreihen; Feld = Spalte * R + Zeile (Zeile 0 unten) */
+const WIN = [], CELLWIN = Array.from({ length: C * R }, () => []);
+for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) {
+  for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
+    const w = [];
+    for (let k = 0; k < 4; k++) { const x = c + dx * k, y = r + dy * k; if (x < 0 || x >= C || y < 0 || y >= R) break; w.push(x * R + y); }
+    if (w.length === 4) { w.forEach(cell => CELLWIN[cell].push(WIN.length)); WIN.push(w); }
+  }
+}
+
+function wins(cell, p) {
+  for (const j of CELLWIN[cell]) { const w = WIN[j]; if (b[w[0]] === p && b[w[1]] === p && b[w[2]] === p && b[w[3]] === p) return w; }
+  return null;
+}
+/* Bewertung aus Sicht von p: offene Reihen zählen, Mitte bevorzugen */
+function evaluate(p) {
+  const q = 3 - p;
+  let s = 0;
+  for (const w of WIN) {
+    let a = 0, o = 0;
+    for (let k = 0; k < 4; k++) { const v = b[w[k]]; if (v === p) a++; else if (v === q) o++; }
+    if (!o) s += SC[a]; else if (!a) s -= SC[o];
+  }
+  for (let k = 0; k < R; k++) { const v = b[3 * R + k]; if (v === p) s += 3; else if (v === q) s -= 3; }
+  return s;
+}
+/* Negamax mit Alpha-Beta; Wert aus Sicht des Spielers am Zug */
+function negamax(depth, alpha, beta, p) {
+  let best = -Infinity, any = false;
+  for (const c of ORDER) {
+    if (h[c] >= R) continue;
+    any = true;
+    const cell = c * R + h[c];
+    let v;
+    b[cell] = p; h[c]++;
+    if (wins(cell, p)) v = 100000 + depth;
+    else if (depth <= 1) v = evaluate(p);
+    else v = -negamax(depth - 1, -beta, -alpha, 3 - p);
+    h[c]--; b[cell] = 0;
+    if (v > best) best = v;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return any ? best : 0;
+}
+function cpuMove() {
+  const free = ORDER.filter(c => h[c] < R), depth = DEPTH[mode] || 4;
+  let bestV = -Infinity, bestC = -1;
+  if (mode === "easy" && rnd(100) < 35) return free[rnd(free.length)];
+  for (const c of free) {
+    const cell = c * R + h[c];
+    b[cell] = 2; h[c]++;
+    const v = wins(cell, 2) ? 1e9 : -negamax(depth - 1, -Infinity, -bestV, 1);
+    h[c]--; b[cell] = 0;
+    if (v > bestV) { bestV = v; bestC = c; }
+  }
+  return bestC < 0 ? free[0] : bestC;
+}
+
+function size() {
+  const W = fitWidth(420, R / C, $("#cBoard")), r = devicePixelRatio || 1, old = cs;
+  cs = W / C;
+  if (fall && old) fall.y *= cs / old;
+  cv.style.width = W + "px"; cv.style.height = cs * R + "px"; $("#cBoard").style.width = W + "px";
+  cv.width = Math.round(W * r); cv.height = Math.round(cs * R * r);
+  ctx.setTransform(r, 0, 0, r, 0, 0);
+  draw();
+}
+function disc(x, y, col, ring) {
+  ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, cs * 0.4, 0, Math.PI * 2); ctx.fill();
+  if (ring) { ctx.strokeStyle = ring; ctx.lineWidth = Math.max(2, cs * 0.08); ctx.beginPath(); ctx.arc(x, y, cs * 0.3, 0, Math.PI * 2); ctx.stroke(); }
+}
+function draw() {
+  if (!cs) return;
+  const W = cs * C, H = cs * R, ac = css("--accent"), bg = css("--bg"), dark = document.documentElement.dataset.dark === "1";
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = ac; ctx.fillRect(0, 0, W, H);
+  for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) {
+    const v = b[c * R + r];
+    disc((c + 0.5) * cs, (R - r - 0.5) * cs, v ? COL[v] : bg, win && win.includes(c * R + r) ? (dark ? "#ffffff" : "#111111") : null);
+  }
+  if (fall) disc((fall.c + 0.5) * cs, fall.y, COL[fall.p], null);
+}
+function animate(c, r, p, done) {
+  let last = 0;
+  fall = { c, p, y: -cs * 0.5, v: 0 };
+  function step(t) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0.016; last = t;
+    fall.v += cs * 60 * dt; fall.y += fall.v * dt;
+    if (fall.y >= (R - r - 0.5) * cs) { fall = null; done(); return; }
+    draw(); rafId = requestAnimationFrame(step);
+  }
+  rafId = requestAnimationFrame(step);
+}
+const cpuTurn = () => mode !== "two" && turn === 2;
+function labels() {
+  const two = mode === "two";
+  $("#cAl").textContent = two ? "Rot" : "Du (Rot)";
+  $("#cBl").textContent = two ? "Gelb" : "Computer (Gelb)";
+  $("#cA").textContent = score.a; $("#cB").textContent = score.b; $("#cD").textContent = score.d;
+  $$("#cMode button").forEach(bt => bt.setAttribute("aria-pressed", bt.dataset.m === mode));
+  if (!over) $("#cMsg").textContent = two ? (turn === 1 ? "Rot" : "Gelb") + " ist dran" : turn === 1 ? "Du bist dran" : "Computer denkt …";
+}
+function newRound() {
+  clearTimeout(cpuT);
+  b = Array(C * R).fill(0);
+  h = [0, 0, 0, 0, 0, 0, 0]; moves = 0; over = false; win = null; busy = false; fall = null;
+  turn = starter; starter = 3 - starter;
+  labels(); draw();
+  if (cpuTurn()) cpuT = setTimeout(cpu, 400);
+}
+function cpu() { if (!over && cpuTurn()) play(cpuMove()); }
+function play(c) {
+  if (over || busy || c < 0 || c >= C || h[c] >= R) return;
+  const r = h[c], p = turn;
+  busy = true;
+  animate(c, r, p, () => {
+    const cell = c * R + r;
+    b[cell] = p; h[c]++; moves++; busy = false;
+    win = wins(cell, p);
+    if (win) {
+      over = true; score[p === 1 ? "a" : "b"]++; store.set("c4.score", score);
+      $("#cMsg").textContent = mode === "two" ? (p === 1 ? "Rot" : "Gelb") + " gewinnt!" : p === 1 ? "Du gewinnst!" : "Der Computer gewinnt.";
+    } else if (moves === C * R) {
+      over = true; score.d++; store.set("c4.score", score); $("#cMsg").textContent = "Unentschieden – das Feld ist voll";
+    } else turn = 3 - p;
+    labels(); draw();
+    if (!over && cpuTurn()) cpuT = setTimeout(cpu, 60);
+  });
+}
+function userPlay(c) { if (!cpuTurn()) play(c); }
+
+cv.onclick = e => {
+  const rc = cv.getBoundingClientRect();
+  userPlay(Math.floor((e.clientX - rc.left) / cs));
+};
+addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName)) return;
+  if (e.key.length === 1 && e.key >= "1" && e.key <= "7") userPlay(+e.key - 1);
+});
+$("#cNew").onclick = () => { if (!busy) newRound(); };
+$("#cReset").onclick = () => { score = { a: 0, b: 0, d: 0 }; store.set("c4.score", score); labels(); };
+$("#cMode").onclick = e => {
+  const bt = e.target.closest("button"); if (!bt || busy) return;
+  mode = bt.dataset.m; store.set("c4.mode", mode);
+  score = { a: 0, b: 0, d: 0 }; store.set("c4.score", score); starter = 1; newRound();
+};
+addEventListener("resize", size);
+/* Theme-Wechsel (Einstellungen, System) → neu zeichnen */
+const mo = new MutationObserver(draw);
+mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-dark", "data-theme", "style", "class"] });
+onLeave(() => mo.disconnect());
+size(); newRound();
+})();
+</script>
+</body>
+</html>

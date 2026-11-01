@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Social · Systemtools</title>
+<meta name="description" content="Systemtools – Werkzeuge für dein Gerät, direkt im Browser.">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Systemtools">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%239FABBC'/%3E%3Cpath d='M30 10a8 8 0 0 0-7.6 10.4L11 31.8a3 3 0 0 0 4.2 4.2l11.4-11.4A8 8 0 0 0 37 17l-5 5-4-1-1-4 5-5a8 8 0 0 0-2-2z' fill='%231F3A5F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:36px;font-size:14px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.mt{margin-top:10px}
+.flex{display:flex;align-items:center;gap:8px}
+.grow{flex:1 1 auto;min-width:0}
+.center{text-align:center}
+input[type=password]{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none;width:100%}
+textarea{resize:vertical}
+.post{border-radius:16px;padding:12px 14px;margin-bottom:10px;background:var(--surface);border:1px solid var(--border)}
+.au{display:flex;align-items:center;cursor:pointer}
+.au .grow{flex:1 1 auto;min-width:0}
+.av{width:40px;height:40px;border-radius:50%;flex:0 0 40px;margin-right:10px;display:block;text-align:center;line-height:40px;font-weight:700;overflow:hidden;background:var(--accent-soft);color:var(--text);object-fit:cover}
+.av.big{width:64px;height:64px;flex-basis:64px;line-height:64px;font-size:24px}
+.nm{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd{font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px}
+.ph{overflow-wrap:anywhere;margin-top:8px}
+.ph p{margin:0 0 8px}
+.media{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.media.one{grid-template-columns:1fr}
+.media a{display:block;position:relative}
+.media img{width:100%;border-radius:10px;display:block}
+.media .vid{position:absolute;left:8px;bottom:8px;font-size:13px;background:rgba(0,0,0,.7);color:#fff;padding:2px 8px;border-radius:8px}
+.ext{display:block;margin-top:8px;border-radius:12px;text-decoration:none;overflow:hidden;border:1px solid var(--border);color:var(--text)!important}
+.ext img{width:100%;display:block}
+.ext div{padding:8px 10px;font-size:14px;overflow-wrap:anywhere}
+.ext small{display:block}
+.quote{margin-top:8px;border-radius:12px;padding:8px 10px;font-size:14px;border:1px solid var(--border);color:var(--text)}
+.pm{font-size:13px;margin-top:8px;display:flex;align-items:center}
+.pm span{margin-right:14px;white-space:nowrap}
+.pm svg{width:14px;height:14px;vertical-align:-2px;margin-right:3px}
+.pm a{margin-left:auto}
+.rp{font-size:13px;margin-bottom:6px}
+.tag{font-weight:600;color:var(--accent)}
+:root[data-dark="1"] .tag{color:color-mix(in srgb,var(--accent) 45%,#fff)}
+.ext small,.rp,.pm,.hd,.cnt{color:var(--muted)}
+.cnt span{display:inline-block;margin:6px 14px 0 0;font-size:14px}
+#qRow{margin-top:10px}
+#qRow input{flex:1 1 auto}
+</style>
+<script>var ROOT="../../";</script>
+<script src="../../assets/common.js"></script>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="wrap">
+    <a class="iconbtn" href="../../" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+    <h1 id="title">Social</h1>
+    <a class="iconbtn" href="../../einstellungen/" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
+  </div>
+</header>
+<main class="wrap" id="app">
+<div class="seg" id="net" role="group"><button data-n="bsky">Bluesky</button><button data-n="masto">Mastodon</button></div>
+<div id="instRow" class="mt" hidden><label class="fld" for="inst" style="margin-top:0">Mastodon-Instanz</label><div class="flex"><input type="text" id="inst" class="grow" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="z. B. mastodon.social"><button class="btn tonal" id="instGo">Wechseln</button></div></div>
+<div class="chips mt" id="views"></div>
+<div class="flex" id="qRow" hidden><input type="text" id="q" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="btn tonal" id="qGo">Anzeigen</button></div>
+<div class="chips mt" id="favs" hidden></div>
+<div class="card" id="gate" hidden>
+  <h3>Bevor es losgeht</h3>
+  <p class="muted" style="font-size:14px;margin:0 0 10px">Diese App lädt Beiträge direkt von Bluesky bzw. der gewählten Mastodon-Instanz. Dabei erhalten diese Dienste (und deren Bild-Server) deine IP-Adresse und übliche Browserdaten. Es gibt keinen Server dazwischen. Details unten unter „Datenschutz“.</p>
+  <button class="btn" id="gateOk">Verstanden, Inhalte laden</button>
+</div>
+<div id="head" class="mt"></div>
+<div id="feed"></div>
+<p class="center muted" id="status" role="status" style="min-height:1.5em"></p>
+<p class="center"><button class="btn tonal" id="more" hidden>Mehr laden</button></p>
+<div class="card fsx">
+  <h3>Anzeige</h3>
+  <label class="switch"><span>Bilder und Profilbilder laden</span><input type="checkbox" id="optImg"></label>
+  <label class="switch"><span>Als sensibel markierte Bilder sofort zeigen</span><input type="checkbox" id="optSens"></label>
+</div>
+<div class="card help fsx">
+  <h3>Datenschutz</h3>
+  <ul class="nope">
+    <li>Kein eigener Server: Dein Browser fragt die Dienste direkt ab. <b>Bluesky</b>: <span class="mono">public.api.bsky.app</span> zum Lesen, Bilder von <span class="mono">cdn.bsky.app</span> und <span class="mono">video.bsky.app</span>; nach der Anmeldung zusätzlich dein Bluesky-Server (z. B. <span class="mono">bsky.social</span>). <b>Mastodon</b>: die eingestellte Instanz und deren Medienserver.</li>
+    <li>Diese Dienste sehen deine IP-Adresse und Browserdaten. Links und „Öffnen“ führen auf externe Seiten.</li>
+    <li>Anmeldung (nur Bluesky): Das App-Passwort wird nur an deinen Bluesky-Server geschickt und nicht gespeichert. Die Sitzungsschlüssel liegen im lokalen Speicher dieses Browsers, bis du dich abmeldest oder unter Einstellungen alle Daten löschst. App-Passwörter kannst du in den Bluesky-Einstellungen jederzeit widerrufen.</li>
+    <li>Merkliste, Instanz und Einstellungen bleiben nur auf diesem Gerät.</li>
+  </ul>
+</div>
+</main>
+<script>
+(function () {
+"use strict";
+/* =========================================================
+   Social – Bluesky/Mastodon lesen, auf Bluesky posten
+   ========================================================= */
+const PUB = "https://public.api.bsky.app/xrpc/";
+const DISCOVER = "at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/whats-hot";
+const ADULT = new Set(["porn", "sexual", "nudity", "graphic-media", "gore"]);
+const VIEWS = {
+  bsky: [["discover", "Entdecken"], ["profile", "Profil"], ["timeline", "Meine Timeline"], ["account", "Konto"]],
+  masto: [["trends", "Trends"], ["tag", "Hashtag"], ["profile", "Profil"]]
+};
+const SV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+const ICON = {
+  re: SV + '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>',
+  rp: SV + '<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg>',
+  lk: SV + '<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>'
+};
+const cfg = Object.assign({ net: "bsky", bView: "discover", mView: "trends", inst: "mastodon.social", imgs: true, sens: false, ok: false, bQ: "", mTag: "", mAcct: "" }, store.get("social.cfg", {}) || {});
+if (!VIEWS[cfg.net]) cfg.net = "bsky";
+let favs = store.get("social.favs", []), sess = store.get("social.bsky", null);
+if (!Array.isArray(favs)) favs = [];
+let seq = 0, page = { fn: null, cursor: null, acctId: null };
+const ctrls = new Set();
+onLeave(() => { seq++; ctrls.forEach(c => c.abort()); });
+
+/* ---------- Hilfen ---------- */
+const trim = s => String(s || "").trim();
+const safe = u => /^https?:\/\//i.test(u || "") ? u : "";
+const enc = s => encodeURIComponent(s);
+const saveCfg = () => store.set("social.cfg", cfg);
+const TE = new TextEncoder(), TD = new TextDecoder();
+const utf8 = s => TE.encode(s);
+const fromUtf8 = b => TD.decode(b);
+const SEG = typeof Intl.Segmenter === "function" ? new Intl.Segmenter("de", { granularity: "grapheme" }) : null;
+const glen = s => SEG ? [...SEG.segment(s)].length : [...s].length;
+const num = n => { n = +n || 0; return n >= 1e6 ? nf(n / 1e6, 1) + " Mio." : n >= 1e4 ? nf(n / 1e3, 1) + " Tsd." : nf(n, 0); };
+/* ISO-Zeit robust lesen (Mikrosekunden, "+00:00"-Form) */
+function parseIso(s) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.(\d+))?(Z|([+\-])(\d\d):?(\d\d))?$/.exec(s || "");
+  if (!m) return NaN;
+  let t = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6], m[7] ? Math.floor(parseFloat("0." + m[7]) * 1000) : 0);
+  if (m[9]) t -= (m[9] === "+" ? 1 : -1) * (+m[10] * 60 + +m[11]) * 60000;
+  return t;
+}
+function ago(s) {
+  const t = parseIso(s);
+  if (isNaN(t)) return "";
+  const d = Math.round((Date.now() - t) / 1000);
+  if (d < 60) return "gerade eben";
+  if (d < 3600) return "vor " + Math.floor(d / 60) + " Min.";
+  if (d < 86400) return "vor " + Math.floor(d / 3600) + " Std.";
+  if (d < 7 * 86400) { const x = Math.floor(d / 86400); return "vor " + x + (x === 1 ? " Tag" : " Tagen"); }
+  const x = new Date(t); return pad(x.getDate()) + "." + pad(x.getMonth() + 1) + "." + x.getFullYear();
+}
+function status(msg, err) { const s = $("#status"); s.textContent = msg || ""; s.className = "center " + (err ? "err" : "muted"); }
+function errText(e) {
+  const M = { "Profile not found": "Profil nicht gefunden.", "Record not found": "Nicht gefunden." };
+  if (!e.status || e.de) return e.message || "Keine Verbindung oder vom Browser blockiert.";
+  if (e.status === 429) return "Zu viele Anfragen – bitte kurz warten.";
+  if (e.status === 404) return "Nicht gefunden.";
+  return M[e.message] || "Fehler " + e.status + (e.message ? ": " + e.message : "");
+}
+/* Anfrage mit fetch; Rückgabe [Fehler|null, JSON] wie der WP-Callback */
+async function req(method, url, body, token) {
+  const ac = new AbortController(); let timedOut = false;
+  const tm = setTimeout(() => { timedOut = true; ac.abort(); }, 20000);
+  ctrls.add(ac);
+  try {
+    const headers = {};
+    if (body) headers["Content-Type"] = "application/json";
+    if (token) headers.Authorization = "Bearer " + token;
+    const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: ac.signal, credentials: "omit" });
+    let j = null;
+    try { j = JSON.parse(await r.text()); } catch {}
+    if (r.ok) return [null, j];
+    return [{ status: r.status, error: j && j.error, message: j && (j.message || j.error) }, j];
+  } catch {
+    return [{ status: 0, message: timedOut ? "Zeitüberschreitung." : undefined }, null];
+  } finally { clearTimeout(tm); ctrls.delete(ac); }
+}
+
+/* ---------- Mastodon-HTML: nur Text, Absätze, Umbrüche und http(s)-Links übernehmen ---------- */
+function walk(node) {
+  let out = "";
+  for (const c of node.childNodes) {
+    if (c.nodeType === 3) { out += esc(c.nodeValue); continue; }
+    if (c.nodeType !== 1) continue;
+    const tag = c.nodeName.toLowerCase(), cl = c.classList;
+    if (["script", "style", "img", "iframe", "object"].includes(tag)) continue;
+    if (tag === "br") out += "<br>";
+    else if (tag === "p") out += "<p>" + walk(c) + "</p>";
+    else if (tag === "span" && cl.contains("invisible")) continue;
+    else if (tag === "span" && cl.contains("ellipsis")) out += walk(c) + "…";
+    else if (tag === "a") {
+      const href = c.getAttribute("href") || "", txt = c.textContent || "";
+      if (cl.contains("hashtag") && txt.charAt(0) === "#") out += `<a href="#" class="tag" data-mtag="${esc(txt.slice(1))}">${esc(txt)}</a>`;
+      else if (safe(href)) out += `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${walk(c)}</a>`;
+      else out += walk(c);
+    }
+    else out += walk(c);
+  }
+  return out;
+}
+function clean(html) {
+  try { return walk(new DOMParser().parseFromString("<!DOCTYPE html><html><body>" + (html || "") + "</body></html>", "text/html").body); }
+  catch { return esc(String(html || "").replace(/<[^>]*>/g, " ")); }
+}
+
+/* ---------- Bluesky: Text mit Facetten (Byte-Positionen in UTF-8) ---------- */
+function bText(text, facets) {
+  if (!facets || !facets.length) return esc(text);
+  const b = utf8(text);
+  const fs = facets.slice().sort((x, y) => (x.index ? x.index.byteStart : 0) - (y.index ? y.index.byteStart : 0));
+  let out = "", pos = 0;
+  for (const f of fs) {
+    if (!f.index) continue;
+    const s = f.index.byteStart, e = f.index.byteEnd;
+    if (s < pos || e <= s || e > b.length) continue;
+    out += esc(fromUtf8(b.slice(pos, s)));
+    const seg = esc(fromUtf8(b.slice(s, e))), ft = (f.features && f.features[0]) || {};
+    if (ft.$type === "app.bsky.richtext.facet#link" && safe(ft.uri)) out += `<a href="${esc(ft.uri)}" target="_blank" rel="noopener noreferrer">${seg}</a>`;
+    else if (ft.$type === "app.bsky.richtext.facet#mention" && ft.did) out += `<a href="#" data-bsky="${esc(ft.did)}">${seg}</a>`;
+    else if (ft.$type === "app.bsky.richtext.facet#tag") out += `<span class="tag">${seg}</span>`;
+    else out += seg;
+    pos = e;
+  }
+  return out + esc(fromUtf8(b.slice(pos)));
+}
+/* Links und #Hashtags für einen neuen Beitrag als Facetten markieren */
+function makeFacets(text) {
+  const out = [], re = /https?:\/\/[^\s<>"]+|(^|\s)(#[^\s#.,;:!?()\[\]"']+)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    let val, start;
+    if (m[2]) { val = m[2]; start = m.index + m[1].length; }
+    else { val = m[0].replace(/[.,;:!?)\]'"]+$/, ""); start = m.index; }
+    const s = utf8(text.slice(0, start)).length;
+    out.push({ index: { byteStart: s, byteEnd: s + utf8(val).length },
+      features: [m[2] ? { $type: "app.bsky.richtext.facet#tag", tag: val.slice(1) } : { $type: "app.bsky.richtext.facet#link", uri: val }] });
+  }
+  return out;
+}
+const bImg = u => safe(u);
+const adult = labels => !!(labels && labels.some(l => ADULT.has(l.val)));
+const rkey = uri => String(uri || "").split("/").pop();
+function bMedia(o, e) {
+  const t = e && e.$type;
+  if (!t) return;
+  if (t === "app.bsky.embed.images#view") o.imgs = e.images.map(i => ({ thumb: bImg(i.thumb), full: bImg(i.fullsize), alt: i.alt }));
+  else if (t === "app.bsky.embed.video#view") o.video = { thumb: safe(e.thumbnail), alt: e.alt };
+  else if (t === "app.bsky.embed.external#view" && e.external) o.ext = { uri: safe(e.external.uri), title: e.external.title, desc: e.external.description, thumb: bImg(e.external.thumb) };
+  else if (t === "app.bsky.embed.record#view") o.quote = bQuote(e.record);
+  else if (t === "app.bsky.embed.recordWithMedia#view") { bMedia(o, e.media); o.quote = bQuote(e.record && e.record.record); }
+}
+function bQuote(r) {
+  if (!r || r.$type !== "app.bsky.embed.record#viewRecord" || !r.author) return { missing: true };
+  const q = { name: r.author.displayName || r.author.handle, handle: "@" + r.author.handle, html: '<div class="pt">' + bText((r.value && r.value.text) || "", r.value && r.value.facets) + "</div>",
+    url: "https://bsky.app/profile/" + r.author.handle + "/post/" + rkey(r.uri), sensitive: adult(r.labels) };
+  if (r.embeds && r.embeds[0]) { bMedia(q, r.embeds[0]); q.quote = null; }
+  return q;
+}
+function bPost(p) {
+  const a = p.author || {}, rec = p.record || {}, o = {
+    net: "bsky", who: a.handle && a.handle !== "handle.invalid" ? a.handle : a.did, name: a.displayName || a.handle, handle: "@" + a.handle, avatar: bImg(a.avatar),
+    html: '<div class="pt">' + bText(rec.text || "", rec.facets) + "</div>", time: rec.createdAt || p.indexedAt,
+    url: "https://bsky.app/profile/" + a.handle + "/post/" + rkey(p.uri), counts: [p.replyCount, p.repostCount, p.likeCount],
+    sensitive: adult(p.labels) || adult(a.labels)
+  };
+  bMedia(o, p.embed);
+  return o;
+}
+function bItem(it) {
+  const o = bPost(it.post), by = it.reason && it.reason.by;
+  if (by && /reasonRepost$/.test(it.reason.$type || "")) o.repost = by.displayName || by.handle;
+  if (it.reply && it.reply.parent && it.reply.parent.author) o.replyTo = "@" + it.reply.parent.author.handle;
+  return o;
+}
+
+/* ---------- Mastodon ---------- */
+const mBase = () => "https://" + cfg.inst + "/api/v1/";
+const mHandle = a => "@" + a.acct + (a.acct.includes("@") ? "" : "@" + cfg.inst);
+function mMedia(o, s) {
+  for (const m of s.media_attachments || []) {
+    if (m.type === "image") (o.imgs = o.imgs || []).push({ thumb: safe(m.preview_url), full: safe(m.url || m.remote_url), alt: m.description });
+    else if ((m.type === "video" || m.type === "gifv") && !o.video) o.video = { thumb: safe(m.preview_url), alt: m.description };
+  }
+  if (s.card && safe(s.card.url)) o.ext = { uri: safe(s.card.url), title: s.card.title, desc: s.card.description, thumb: safe(s.card.image) };
+}
+function mPost(s) {
+  let boost = null;
+  if (s.reblog) { boost = s.account.display_name || s.account.username; s = s.reblog; }
+  const a = s.account;
+  const o = { net: "masto", who: a.id, acct: a.acct, name: a.display_name || a.username, handle: mHandle(a), avatar: safe(a.avatar_static || a.avatar),
+    html: '<div class="ph">' + clean(s.content) + "</div>", time: s.created_at, url: safe(s.url) || safe(s.uri),
+    counts: [s.replies_count, s.reblogs_count, s.favourites_count], sensitive: !!s.sensitive, cw: s.spoiler_text, repost: boost };
+  mMedia(o, s);
+  if (s.quote && s.quote.quoted_status) {
+    const q = s.quote.quoted_status;
+    o.quote = { name: q.account.display_name || q.account.username, handle: mHandle(q.account), html: '<div class="ph">' + clean(q.content) + "</div>", url: safe(q.url) || safe(q.uri), sensitive: !!q.sensitive };
+    mMedia(o.quote, q);
+  }
+  return o;
+}
+
+/* ---------- Darstellung ---------- */
+function avatar(u, name, big) {
+  const c = big ? "av big" : "av";
+  if (cfg.imgs && u) return `<img class="${c}" src="${esc(u)}" alt="" loading="lazy">`;
+  return `<span class="${c}">${esc(String(name || "?").charAt(0).toUpperCase())}</span>`;
+}
+const img = (u, alt, hide) => u ? `<img ${hide ? "data-src" : "src"}="${esc(u)}" alt="${esc(alt || "")}" loading="lazy">` : "";
+const ext = (u, body) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${body}</a>`;
+function mediaHtml(o, link, hide) {
+  let h = "";
+  const list = o.imgs || [], hid = hide ? ' class="hid" hidden' : "", mc = extra => `<div class="media${extra}${hide ? " hid" : ""}"${hide ? " hidden" : ""}>`;
+  if (list.length) h += mc(list.length === 1 ? " one" : "") + list.slice(0, 4).map(i => ext(i.full || i.thumb, img(i.thumb, i.alt, hide))).join("") + "</div>";
+  if (o.video && o.video.thumb) h += mc(" one") + ext(link, img(o.video.thumb, o.video.alt, hide) + '<span class="vid">▶ Video – im Browser öffnen</span>') + "</div>";
+  else if (o.video && link) h += '<p style="margin:8px 0 0">' + ext(link, "▶ Video im Browser öffnen") + "</p>";
+  if (o.ext && o.ext.uri) {
+    const d = o.ext.desc;
+    h += `<a class="ext" href="${esc(o.ext.uri)}" target="_blank" rel="noopener noreferrer">` + (o.ext.thumb ? "<span" + hid + ">" + img(o.ext.thumb, "", hide) + "</span>" : "") +
+      "<div><b>" + esc(o.ext.title || o.ext.uri) + "</b>" + (d ? "<small>" + esc(d.length > 160 ? d.slice(0, 157) + "…" : d) + "</small>" : "") +
+      "<small>" + esc(o.ext.uri.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]) + "</small></div></a>";
+  }
+  return h;
+}
+const hasPics = o => !!((o.imgs && o.imgs.length) || (o.video && o.video.thumb) || (o.ext && o.ext.thumb) || (o.quote && hasPics(o.quote)));
+function postHtml(o) {
+  const q = o.quote, sens = (o.sensitive || (q && q.sensitive)) && !cfg.sens, hide = sens || !cfg.imgs;
+  let h = '<div class="post">';
+  if (o.repost) h += '<div class="rp">' + ICON.rp.replace("<svg ", '<svg style="width:13px;height:13px;vertical-align:-2px" ') + " " + esc(o.repost) + " hat geteilt</div>";
+  if (o.replyTo) h += '<div class="rp">Antwort an ' + esc(o.replyTo) + "</div>";
+  h += `<div class="au" data-net="${o.net}" data-who="${esc(o.who)}" data-acct="${esc(o.acct || "")}">` + avatar(o.avatar, o.name) +
+    `<div class="grow"><span class="nm">${esc(o.name)}</span><span class="hd">${esc(o.handle)} · ${ago(o.time)}</span></div></div>`;
+  let body = o.html + mediaHtml(o, o.url, hide);
+  if (q) {
+    body += q.missing ? '<div class="quote muted">Zitierter Beitrag nicht verfügbar</div>' :
+      `<div class="quote"><b>${esc(q.name)}</b> <span class="muted">${esc(q.handle)}</span>` + q.html + mediaHtml(q, q.url, hide) + "</div>";
+  }
+  if (hide && hasPics(o)) body += '<button class="btn text reveal-img">' + (sens ? "Sensibler Inhalt – Bilder anzeigen" : "Bilder anzeigen") + "</button>";
+  if (o.cw) h += `<div class="pt"><b>${esc(o.cw)}</b></div><button class="btn text reveal">Inhalt anzeigen</button><div hidden>${body}</div>`;
+  else h += body;
+  h += '<div class="pm"><span>' + ICON.re + num(o.counts[0]) + "</span><span>" + ICON.rp + num(o.counts[1]) + "</span><span>" + ICON.lk + num(o.counts[2]) + "</span>" +
+    (o.url ? ext(o.url, "Öffnen") : "") + "</div>";
+  return h + "</div>";
+}
+/* ein unerwartet aufgebauter Beitrag soll nicht die ganze Liste verhindern */
+function mapSafe(arr, fn) { const out = []; for (const x of arr || []) { try { out.push(fn(x)); } catch {} } return out; }
+function showPosts(list, cursor, append) {
+  let h = "";
+  for (const p of list) { try { h += postHtml(p); } catch {} }
+  if (append) $("#feed").insertAdjacentHTML("beforeend", h); else $("#feed").innerHTML = h;
+  page.cursor = cursor || null;
+  $("#more").hidden = !page.cursor || !list.length;
+  status(!list.length && !append ? "Keine Beiträge gefunden." : "");
+}
+function favBtn(kind, id, label) {
+  const on = isFav(kind, id) !== false;
+  return `<button class="btn text" id="favT" data-kind="${kind}" data-id="${esc(id)}" data-label="${esc(label)}">${on ? "★ Gemerkt" : "☆ Merken"}</button>`;
+}
+function profileHead(p) {
+  $("#head").innerHTML = '<div class="card"><div class="au" style="cursor:default">' + avatar(p.avatar, p.name, true) + `<div class="grow"><span class="nm">${esc(p.name)}</span><span class="hd">${esc(p.handle)}</span></div></div>` +
+    (p.bio ? `<div class="${p.bioHtml ? "ph" : "pt"}">${p.bio}</div>` : "") +
+    `<div class="cnt"><span><b>${num(p.posts)}</b> Beiträge</span><span><b>${num(p.followers)}</b> Follower</span><span><b>${num(p.follows)}</b> folgt</span></div>` +
+    '<div class="row mt" style="margin-bottom:-8px">' + favBtn("profile", p.id, p.handle) + (p.url ? `<a class="btn text" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Im Browser öffnen</a>` : "") + "</div></div>";
+}
+
+/* ---------- Merkliste ---------- */
+function isFav(kind, id) {
+  const k = favs.findIndex(f => f.net === cfg.net && f.kind === kind && f.id === id && (f.net !== "masto" || f.inst === cfg.inst));
+  return k < 0 ? false : k;
+}
+function toggleFav(kind, id, label) {
+  const k = isFav(kind, id);
+  if (k !== false) { favs.splice(k, 1); toast("Aus der Merkliste entfernt"); }
+  else { favs.push({ net: cfg.net, kind, id, label, inst: cfg.net === "masto" ? cfg.inst : "" }); toast("Gemerkt"); }
+  store.set("social.favs", favs); drawFavs();
+}
+function drawFavs() {
+  const h = favs.map((f, k) => f.net !== cfg.net ? "" :
+    `<button data-k="${k}">${esc(f.kind === "tag" ? "#" + f.label : f.label)}${f.inst && f.inst !== cfg.inst ? " (" + esc(f.inst) + ")" : ""}</button>`).join("");
+  $("#favs").innerHTML = h; $("#favs").hidden = !h;
+  const t = $("#favT"); if (t) t.textContent = isFav(t.dataset.kind, t.dataset.id) !== false ? "★ Gemerkt" : "☆ Merken";
+}
+
+/* ---------- Bluesky: Laden ---------- */
+function fail(my, e) { if (my === seq) { status(errText(e), true); $("#more").hidden = true; } }
+function begin(append) { const my = ++seq; status("Lade …"); if (!append) { $("#feed").innerHTML = ""; $("#more").hidden = true; } return my; }
+const cur = (append, name) => append && page.cursor ? "&" + name + "=" + enc(page.cursor) : "";
+/* Liste laden und anzeigen, sofern noch aktuell */
+async function feedOf(my, append, p, map, next) {
+  const [e, j] = await p;
+  if (my !== seq) return;
+  if (e || !j) { fail(my, e || {}); return; }
+  if (map === mPost && !Array.isArray(j)) { fail(my, { status: 0, message: "Unerwartete Antwort der Instanz." }); return; }
+  const list = map === mPost ? j : j.feed;
+  showPosts(mapSafe(list, map), next(j), append);
+}
+function bDiscover(append) {
+  const my = begin(append);
+  if (!append) $("#head").innerHTML = '<p class="muted help" style="font-size:14px;margin:0 0 10px">„Entdecken“ ist der öffentliche Feed „Discover“ von Bluesky (überwiegend englisch).</p>';
+  feedOf(my, append, req("GET", PUB + "app.bsky.feed.getFeed?feed=" + enc(DISCOVER) + "&limit=25" + cur(append, "cursor")), bItem, j => j.cursor);
+}
+function bHandle(v) {
+  v = trim(v).replace(/^@/, "").replace(/^https?:\/\/bsky\.app\/profile\//i, "").split(/[\/?#]/)[0];
+  if (/^did:[a-z]+:[A-Za-z0-9._:%\-]+$/.test(v)) return v;
+  v = v.toLowerCase();
+  if (v && !v.includes(".")) v += ".bsky.social";
+  return /^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)+$/.test(v) ? v : "";
+}
+async function bProfile(append, actor) {
+  actor = actor || page.actor;
+  if (!actor) { $("#head").innerHTML = ""; status("Gib oben ein Bluesky-Handle ein, z. B. bsky.app."); return; }
+  page.actor = actor;
+  const my = begin(append);
+  const feed = () => feedOf(my, append, req("GET", PUB + "app.bsky.feed.getAuthorFeed?actor=" + enc(actor) + "&limit=25&filter=posts_and_author_threads" + cur(append, "cursor")), bItem, j => j.cursor);
+  if (append) { feed(); return; }
+  $("#head").innerHTML = "";
+  const [e, p] = await req("GET", PUB + "app.bsky.actor.getProfile?actor=" + enc(actor));
+  if (my !== seq) return;
+  if (e || !p) { fail(my, e || {}); return; }
+  profileHead({ id: p.handle, name: p.displayName || p.handle, handle: "@" + p.handle, avatar: bImg(p.avatar), bio: p.description ? esc(p.description) : "",
+    posts: p.postsCount, followers: p.followersCount, follows: p.followsCount, url: "https://bsky.app/profile/" + p.handle });
+  feed();
+}
+async function bAuth(method, nsid, body, retried) {
+  if (!sess) return [{ status: 401, de: true, message: "Nicht angemeldet." }, null];
+  const [e, j] = await req(method, sess.pds + "/xrpc/" + nsid, body, sess.access);
+  if (e && !retried && (e.error === "ExpiredToken" || e.error === "InvalidToken" || e.status === 401)) {
+    const [e2, s] = await req("POST", sess.pds + "/xrpc/com.atproto.server.refreshSession", null, sess.refresh);
+    if (e2 || !s || !s.accessJwt) { bForget(); return [{ status: 401, de: true, message: "Sitzung abgelaufen – bitte neu anmelden." }, null]; }
+    sess.access = s.accessJwt; sess.refresh = s.refreshJwt || sess.refresh; sess.handle = s.handle || sess.handle;
+    store.set("social.bsky", sess);
+    return bAuth(method, nsid, body, true);
+  }
+  return [e, j];
+}
+async function bTimeline(append) {
+  if (!sess) { cfg.bView = "account"; saveCfg(); toast("Für die Timeline bitte anmelden"); go(); return; }
+  const my = begin(append);
+  if (!append) $("#head").innerHTML = "";
+  const [e, j] = await bAuth("GET", "app.bsky.feed.getTimeline?limit=25" + cur(append, "cursor"), null);
+  if (my !== seq) return;
+  if (e || !j) { fail(my, e || {}); if (!sess) drawViews(); return; }
+  showPosts(mapSafe(j.feed, bItem), j.cursor, append);
+}
+function bAccount(append) {
+  if (append) { bProfile(true); return; }
+  if (!sess) {
+    $("#head").innerHTML = '<div class="card"><h3>Bei Bluesky anmelden</h3>' +
+      '<p class="muted help" style="font-size:14px;margin:0">Bitte ein <b>App-Passwort</b> verwenden, nicht dein normales Passwort. Du legst es in den Bluesky-Einstellungen unter „App-Passwörter“ an und kannst es dort jederzeit widerrufen.</p>' +
+      '<label class="fld" for="bId">Handle oder E-Mail</label><input type="text" id="bId" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="name.bsky.social">' +
+      '<label class="fld" for="bPw">App-Passwort</label><input type="password" id="bPw" autocomplete="off" placeholder="xxxx-xxxx-xxxx-xxxx">' +
+      '<label class="fld" for="bHost">Server</label><input type="text" id="bHost" autocapitalize="off" autocorrect="off" spellcheck="false" value="bsky.social">' +
+      '<div class="row mt" style="margin-bottom:-8px"><button class="btn" id="bLogin">Anmelden</button></div></div>';
+    $("#feed").innerHTML = ""; $("#more").hidden = true; status("");
+    $("#bLogin").onclick = bLogin;
+    $("#bPw").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); bLogin(); } };
+    return;
+  }
+  $("#head").innerHTML = '<div class="card"><h3>Angemeldet als @' + esc(sess.handle) + "</h3>" +
+    '<label class="fld" for="bPost">Neuer Beitrag (öffentlich)</label><textarea id="bPost" rows="4"></textarea>' +
+    '<div class="flex mt"><span class="grow muted" id="bCnt" style="font-size:14px">0 / 300</span><button class="btn" id="bSend">Veröffentlichen</button></div>' +
+    '<p class="muted help" style="font-size:13px;margin:8px 0 0">Links und #Hashtags werden erkannt. @-Erwähnungen erscheinen als normaler Text.</p>' +
+    '<div class="row mt" style="margin-bottom:-8px"><button class="btn tonal" id="bTl">Meine Timeline</button><button class="btn text" id="bOut">Abmelden</button></div></div>' +
+    '<h2 style="margin-top:16px">Meine Beiträge</h2>';
+  $("#bPost").oninput = countPost;
+  $("#bSend").onclick = bSend;
+  $("#bTl").onclick = () => { cfg.bView = "timeline"; saveCfg(); go(); };
+  $("#bOut").onclick = bLogout;
+  page.actor = sess.did;
+  const my = begin(false);
+  feedOf(my, false, req("GET", PUB + "app.bsky.feed.getAuthorFeed?actor=" + enc(sess.did) + "&limit=25"), bItem, j => j.cursor);
+}
+function countPost() { const n = glen($("#bPost").value); $("#bCnt").textContent = n + " / 300"; $("#bCnt").className = "grow " + (n > 300 ? "err" : "muted"); }
+function host(v) { v = trim(v).replace(/^https?:\/\//i, "").split(/[\/?#]/)[0].toLowerCase(); return /^[a-z0-9\-]+(\.[a-z0-9\-]+)+(:\d+)?$/.test(v) ? v : ""; }
+function pdsOf(s, h) {
+  const sv = ((s.didDoc && s.didDoc.service) || []).find(x => (x.id === "#atproto_pds" || x.type === "AtprotoPersonalDataServer") && /^https:\/\//.test(x.serviceEndpoint || ""));
+  return sv ? sv.serviceEndpoint.replace(/\/+$/, "") : "https://" + h;
+}
+async function bLogin() {
+  const id = trim($("#bId").value).replace(/^@/, ""), pw = $("#bPw").value, h = host($("#bHost").value);
+  if (!id || !pw) { toast("Bitte Handle und App-Passwort eingeben"); return; }
+  if (!h) { toast("Server ungültig"); return; }
+  if (!/^[a-z0-9]{4}(-[a-z0-9]{4}){3}$/i.test(pw) && !confirm("Das sieht nicht wie ein App-Passwort aus (Form xxxx-xxxx-xxxx-xxxx). Bitte nutze ein App-Passwort statt deines Hauptpassworts. Trotzdem fortfahren?")) return;
+  $("#bLogin").disabled = true; status("Melde an …");
+  let [e, s] = await req("POST", "https://" + h + "/xrpc/com.atproto.server.createSession", { identifier: id, password: pw });
+  const pwEl = $("#bPw"); if (pwEl) pwEl.value = "";
+  if ($("#bLogin")) $("#bLogin").disabled = false;
+  if (e || !s || !s.accessJwt) {
+    e = e || {};
+    status(e.error === "AuthFactorTokenRequired" ? "Dieses Konto verlangt eine zusätzliche Bestätigung. Bitte ein App-Passwort verwenden." :
+      e.status === 401 ? "Anmeldung fehlgeschlagen: Handle/E-Mail oder App-Passwort stimmt nicht." : errText(e), true);
+    return;
+  }
+  sess = { did: s.did, handle: s.handle, access: s.accessJwt, refresh: s.refreshJwt, pds: pdsOf(s, h) };
+  store.set("social.bsky", sess); toast("Angemeldet als @" + s.handle);
+  cfg.bView = "timeline"; saveCfg(); go();
+}
+function bForget() { sess = null; store.set("social.bsky", null); }
+function bLogout() {
+  if (sess) req("POST", sess.pds + "/xrpc/com.atproto.server.deleteSession", null, sess.refresh);
+  bForget(); toast("Abgemeldet"); go();
+}
+async function bSend() {
+  const text = trim($("#bPost").value);
+  if (!text) { toast("Bitte einen Text eingeben"); return; }
+  if (glen(text) > 300) { toast("Höchstens 300 Zeichen"); return; }
+  if (!confirm("Diesen Beitrag öffentlich auf Bluesky veröffentlichen?")) return;
+  const rec = { $type: "app.bsky.feed.post", text, createdAt: new Date().toISOString(), langs: ["de"] };
+  const f = makeFacets(text); if (f.length) rec.facets = f;
+  $("#bSend").disabled = true;
+  const [e] = await bAuth("POST", "com.atproto.repo.createRecord", { repo: sess.did, collection: "app.bsky.feed.post", record: rec });
+  if ($("#bSend")) $("#bSend").disabled = false;
+  if (e) { status("Senden fehlgeschlagen: " + errText(e), true); if (!sess) go(); return; }
+  if ($("#bPost")) { $("#bPost").value = ""; countPost(); }
+  toast("Beitrag veröffentlicht");
+  const t = setTimeout(() => { if (cfg.net === "bsky" && cfg.bView === "account") go(); }, 1500);
+  onLeave(() => clearTimeout(t));
+}
+
+/* ---------- Mastodon: Laden ---------- */
+const mList = (my, append, url, nextOf) => feedOf(my, append, req("GET", url), mPost, j => j.length ? nextOf(j) : null);
+const lastId = j => j[j.length - 1].id;
+function mTrends(append) {
+  const my = begin(append), off = append && page.cursor ? +page.cursor : 0;
+  if (!append) $("#head").innerHTML = '<p class="muted help" style="font-size:14px;margin:0 0 10px">Beiträge, die auf <b>' + esc(cfg.inst) + "</b> gerade viel geteilt werden.</p>";
+  mList(my, append, mBase() + "trends/statuses?limit=20&offset=" + off, j => String(off + j.length));
+}
+function mTag(append, tag) {
+  tag = tag || page.tag;
+  if (!tag) { $("#head").innerHTML = ""; status("Gib oben einen Hashtag ein, z. B. datenschutz."); return; }
+  page.tag = tag;
+  const my = begin(append);
+  if (!append) $("#head").innerHTML = '<div class="row" style="margin-bottom:0"><h2 style="margin:0 8px 8px 0">#' + esc(tag) + " auf " + esc(cfg.inst) + "</h2>" + favBtn("tag", tag.toLowerCase(), tag) + "</div>";
+  mList(my, append, mBase() + "timelines/tag/" + enc(tag) + "?limit=20" + cur(append, "max_id"), lastId);
+}
+function mAcctOf(v) {
+  v = trim(v);
+  const m = /^https?:\/\/([^\/]+)\/@([A-Za-z0-9_]+)/.exec(v);
+  if (m) v = m[2] + "@" + m[1];
+  v = v.replace(/^@/, "");
+  if (v.indexOf("@") > 0 && v.split("@")[1].toLowerCase() === cfg.inst) v = v.split("@")[0];
+  return /^[A-Za-z0-9_]+(@[A-Za-z0-9.\-]+)?$/.test(v) ? v : "";
+}
+async function mProfile(append, acct, id) {
+  if (append) { mList(begin(true), true, mBase() + "accounts/" + enc(page.acctId) + "/statuses?limit=20&exclude_replies=true" + cur(true, "max_id"), lastId); return; }
+  if (!acct && !id) { $("#head").innerHTML = ""; status("Gib oben ein Profil ein, z. B. Mastodon oder name@instanz.social."); return; }
+  const my = begin(false); $("#head").innerHTML = "";
+  const [e, a] = await req("GET", id ? mBase() + "accounts/" + enc(id) : mBase() + "accounts/lookup?acct=" + enc(acct));
+  if (my !== seq) return;
+  if (e || !a || !a.id) {
+    if (e && e.status === 404) { status("Profil nicht gefunden. Konten anderer Instanzen findest du, wenn du oben deren Instanz einträgst.", true); return; }
+    fail(my, e || {}); return;
+  }
+  page.acctId = a.id;
+  profileHead({ id: a.acct, name: a.display_name || a.username, handle: mHandle(a), avatar: safe(a.avatar_static || a.avatar), bio: clean(a.note), bioHtml: true,
+    posts: a.statuses_count, followers: a.followers_count, follows: a.following_count, url: safe(a.url) });
+  mList(my, false, mBase() + "accounts/" + enc(a.id) + "/statuses?limit=20&exclude_replies=true", lastId);
+}
+
+/* ---------- Steuerung ---------- */
+const view = () => cfg.net === "bsky" ? cfg.bView : cfg.mView;
+function drawViews() {
+  const v = view();
+  $$("#net button").forEach(b => b.setAttribute("aria-pressed", b.dataset.n === cfg.net));
+  $("#views").innerHTML = VIEWS[cfg.net].map(([id, label]) => `<button data-v="${id}" aria-pressed="${id === v}">${id === "account" && sess ? "@" + esc(sess.handle) : label}</button>`).join("");
+  $("#instRow").hidden = cfg.net !== "masto"; $("#inst").value = cfg.inst;
+  const q = (cfg.net === "bsky" && v === "profile") || (cfg.net === "masto" && (v === "tag" || v === "profile"));
+  $("#qRow").hidden = !q;
+  if (q) {
+    $("#q").placeholder = cfg.net === "bsky" ? "Handle, z. B. bsky.app" : v === "tag" ? "Hashtag, z. B. datenschutz" : "Profil, z. B. Mastodon oder name@instanz";
+    $("#q").value = cfg.net === "bsky" ? cfg.bQ : v === "tag" ? cfg.mTag : cfg.mAcct;
+  }
+  $("#optImg").checked = !!cfg.imgs;
+  $("#optSens").checked = !!cfg.sens;
+  drawFavs();
+}
+function go() {
+  const v = view();
+  drawViews();
+  $("#gate").hidden = cfg.ok;
+  if (!cfg.ok) { seq++; $("#head").innerHTML = ""; $("#feed").innerHTML = ""; $("#more").hidden = true; status(""); return; }
+  page = { fn: null, cursor: null };
+  if (cfg.net === "bsky") {
+    page.fn = v === "profile" ? bProfile : v === "timeline" ? bTimeline : v === "account" ? bAccount : bDiscover;
+    if (v === "profile") bProfile(false, bHandle(cfg.bQ)); else page.fn(false);
+  } else {
+    page.fn = v === "tag" ? mTag : v === "profile" ? mProfile : mTrends;
+    if (v === "tag") mTag(false, cfg.mTag); else if (v === "profile") mProfile(false, mAcctOf(cfg.mAcct)); else mTrends(false);
+  }
+}
+function submitQ() {
+  const v = view(), raw = trim($("#q").value);
+  let val;
+  if (cfg.net === "bsky") { val = bHandle(raw); if (!val) { toast("Ungültiges Handle"); return; } cfg.bQ = val; }
+  else if (v === "tag") { val = raw.replace(/^#/, ""); if (!val || /[\s#\/?&]/.test(val)) { toast("Ungültiger Hashtag"); return; } cfg.mTag = val; }
+  else { val = mAcctOf(raw); if (!val) { toast("Ungültiges Profil"); return; } cfg.mAcct = val; }
+  saveCfg(); go();
+}
+function toTop() { const y = $("#views").getBoundingClientRect().top + scrollY - 8 - ($("#top") ? $("#top").offsetHeight : 0); if (y < scrollY) scrollTo(0, Math.max(0, y)); }
+function instGo() { const h = host($("#inst").value); if (!h) { toast("Instanz ungültig"); return; } cfg.inst = h; saveCfg(); go(); }
+
+$("#net").onclick = e => { const b = e.target.closest("button"); if (b) { cfg.net = b.dataset.n; saveCfg(); go(); } };
+$("#views").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (cfg.net === "bsky") cfg.bView = b.dataset.v; else cfg.mView = b.dataset.v;
+  saveCfg(); go();
+};
+$("#qGo").onclick = submitQ;
+$("#q").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); submitQ(); } };
+$("#instGo").onclick = instGo;
+$("#inst").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); instGo(); } };
+$("#gateOk").onclick = () => { cfg.ok = true; saveCfg(); go(); };
+$("#more").onclick = () => { if (page.fn && page.cursor) page.fn(true); };
+$("#optImg").onchange = () => { cfg.imgs = $("#optImg").checked; saveCfg(); go(); };
+$("#optSens").onchange = () => { cfg.sens = $("#optSens").checked; saveCfg(); go(); };
+$("#favs").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const f = favs[parseInt(b.dataset.k, 10)]; if (!f) return;
+  if (f.net === "bsky") { cfg.bView = "profile"; cfg.bQ = f.id; }
+  else { if (f.inst) cfg.inst = f.inst; if (f.kind === "tag") { cfg.mView = "tag"; cfg.mTag = f.label; } else { cfg.mView = "profile"; cfg.mAcct = f.id; } }
+  saveCfg(); go();
+};
+$("#head").onclick = e => { const b = e.target.closest("#favT"); if (b) toggleFav(b.dataset.kind, b.dataset.id, b.dataset.label); };
+$("#feed").onclick = e => {
+  let b;
+  if ((b = e.target.closest(".reveal"))) { b.nextElementSibling.hidden = false; b.remove(); return; }
+  if ((b = e.target.closest(".reveal-img"))) {
+    const p = b.closest(".post");
+    $$(".hid", p).forEach(x => { x.hidden = false; });
+    $$("img[data-src]", p).forEach(im => { im.src = im.dataset.src; im.removeAttribute("data-src"); });
+    b.remove(); return;
+  }
+  if ((b = e.target.closest("[data-bsky]"))) { e.preventDefault(); cfg.net = "bsky"; cfg.bView = "profile"; cfg.bQ = b.dataset.bsky; saveCfg(); go(); toTop(); return; }
+  if ((b = e.target.closest("[data-mtag]"))) { e.preventDefault(); cfg.mView = "tag"; cfg.mTag = b.dataset.mtag; saveCfg(); go(); toTop(); return; }
+  if (e.target.closest("a")) return;
+  if ((b = e.target.closest("[data-who]"))) {
+    if (b.dataset.net === "bsky") { cfg.bView = "profile"; cfg.bQ = b.dataset.who; saveCfg(); go(); }
+    else { cfg.mView = "profile"; cfg.mAcct = b.dataset.acct; saveCfg(); drawViews(); page = { fn: mProfile, cursor: null }; mProfile(false, null, b.dataset.who); }
+    toTop();
+  }
+};
+go();
+})();
+</script>
+</body>
+</html>
