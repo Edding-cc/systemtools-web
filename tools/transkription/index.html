@@ -52,14 +52,24 @@ const TX_PIECE = 4 << 20; // was beim Schließen des Tabs noch nicht gespeichert
 const TX_RUNTIME = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.0-dev.20260914-8d85527a0/dist/ort-wasm-simd-threaded.asyncify";
 // Dateigrößen in MB je Datentyp (Encoder, Decoder), Stand Hugging Face
 const TX_MODELS = [
-  { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell, für Deutsch kaum brauchbar", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
-  { id: "onnx-community/whisper-base", name: "Base", note: "schnell, für Deutsch nur grob", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
-  { id: "onnx-community/whisper-small", name: "Small", note: "gut für Deutsch, ohne Grafikkarte aber langsam", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
-  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "beste Qualität für Deutsch; ohne Grafikkarte sehr langsam (etwa dreimal so lang wie die Aufnahme) und mit viel Arbeitsspeicher, auf Handys eher nicht", big: true, enc: { q8: 644.8, q4: 424.9, q4f16: 370 }, dec: { q8: 439.9, q4: 334.1, q4f16: 193.5 } }
+  { id: "onnx-community/whisper-tiny", name: "Tiny", note: "sehr schnell", enc: { fp32: 32.9, fp16: 16.5, q8: 10.1 }, dec: { q8: 30.7, q4: 86.7 } },
+  { id: "onnx-community/whisper-base", name: "Base", note: "schnell", enc: { fp32: 82.5, fp16: 41.3, q8: 23.2 }, dec: { q8: 53.7, q4: 123.6 } },
+  { id: "onnx-community/whisper-small", name: "Small", note: "ohne Grafikkarte langsam", enc: { fp32: 352.8, fp16: 176.6, q8: 92.3 }, dec: { q8: 156.8, q4: 233.1 } },
+  { id: "onnx-community/whisper-large-v3-turbo", name: "Large v3 Turbo", note: "ohne Grafikkarte sehr langsam (etwa dreimal so lang wie die Aufnahme) und mit viel Arbeitsspeicher, auf Handys eher nicht", big: true, enc: { q8: 644.8, q4: 424.9, q4f16: 370 }, dec: { q8: 439.9, q4: 334.1, q4f16: 193.5 } }
 ];
 // Voreinstellung je Rechenweg, gemessen an deutscher Sprache
 const TX_BEST = { webgpu: "onnx-community/whisper-large-v3-turbo", wasm: "onnx-community/whisper-small" };
 const TX_SUFFIX = { fp32: "", fp16: "_fp16", q8: "_quantized", q4: "_q4", q4f16: "_q4f16" };
+// Fehlerrate in % auf FLEURS laut Whisper-Paper (Radford u. a. 2022, arXiv:2212.04356, Tabelle 13), Reihenfolge wie TX_MODELS.
+// Für Turbo stehen dort keine Werte, als Anhaltspunkt dient das große Modell large-v2. Bei zh/ja zählt das Paper Zeichen statt Wörter.
+const TX_WER = {
+  de: [27.8, 17.9, 10.2, 4.5], en: [12.4, 8.9, 6.1, 4.2], fr: [41.4, 28.5, 15.0, 8.3], es: [15.9, 9.9, 5.6, 3.0], it: [29.8, 17.9, 9.8, 4.0],
+  nl: [49.0, 33.0, 16.4, 6.7], pl: [45.6, 30.8, 14.7, 5.4], pt: [20.1, 13.0, 7.3, 4.3], tr: [42.5, 27.5, 15.9, 8.4], ru: [31.1, 20.5, 11.4, 5.6],
+  uk: [51.2, 37.7, 19.3, 8.6], ar: [63.4, 48.8, 30.6, 16.0], zh: [40.5, 34.1, 20.8, 14.7], ja: [37.0, 22.8, 12.0, 5.3]
+};
+// Eigene Messung Deutsch: 167 s Hörbuch-Ausschnitte (Multilingual LibriSpeech, 9 Sprecher), Turbo hier echt gemessen
+const TX_WER_OWN = { de: [47.3, 23.8, 10.4, 4.4] };
+const txRate = w => w <= 5 ? "sehr gut" : w <= 12 ? "gut" : w <= 20 ? "brauchbar" : w <= 35 ? "nur grob" : "kaum brauchbar";
 const TX_LANGS = [["de", "Deutsch"], ["en", "Englisch"], ["fr", "Französisch"], ["es", "Spanisch"], ["it", "Italienisch"], ["nl", "Niederländisch"], ["pl", "Polnisch"], ["pt", "Portugiesisch"], ["tr", "Türkisch"], ["ru", "Russisch"], ["uk", "Ukrainisch"], ["ar", "Arabisch"], ["zh", "Chinesisch"], ["ja", "Japanisch"]];
 // Läuft als Modul-Worker, damit die Seite während der Erkennung bedienbar bleibt
 const TX_WORKER = `
@@ -488,7 +498,15 @@ function viewTranskription(app) {
   const saveOpts = () => store.set("tx.opts", o);
   // Gewähltes Modell, sonst (oder wenn es auf diesem Rechenweg nicht läuft) die Empfehlung
   const cur = () => { const m = TX_MODELS.find(x => x.id === o.model); return m ? m.id : TX_BEST[effDev()]; };
-  const modelInfo = () => { const m = TX_MODELS.find(x => x.id === cur()); $("#txModelInfo").textContent = m ? m.name + ": " + m.note + "." : ""; };
+  const modelInfo = () => {
+    const m = TX_MODELS.find(x => x.id === cur()); if (!m) { $("#txModelInfo").textContent = ""; return; }
+    const i = TX_MODELS.indexOf(m), w = TX_WER[o.lang]?.[i], own = TX_WER_OWN[o.lang]?.[i];
+    const lang = TX_LANGS.find(([v]) => v === o.lang)?.[1] || o.lang, unit = /^(zh|ja)$/.test(o.lang) ? "Zeichen" : "Wort";
+    const nf1 = x => x.toLocaleString("de-DE");
+    // Bei eigener Messung zählt der schlechtere Wert
+    const q = w == null ? "" : `für ${lang} ${txRate(Math.max(w, own ?? 0))} (${unit}fehler ca. ${nf1(w)} % laut Whisper-Paper${m.big ? ", Wert des großen Modells large-v2" : ""}${own != null ? `, eigene Messung ${nf1(own)} %` : ""})`;
+    $("#txModelInfo").textContent = `${m.name}: ${[q, m.note].filter(Boolean).join("; ")}.`;
+  };
   const drawModels = () => {
     const dev = effDev();
     $("#txModel").innerHTML = TX_MODELS.map(m => {
@@ -623,7 +641,7 @@ function viewTranskription(app) {
   };
 
   $("#txModel").onchange = e => { o.model = e.target.value; saveOpts(); modelInfo(); };
-  $("#txLang").onchange = e => { o.lang = e.target.value; saveOpts(); };
+  $("#txLang").onchange = e => { o.lang = e.target.value; saveOpts(); modelInfo(); };
   $("#txDev").onclick = e => { const b = e.target.closest("button"); if (!b || b.disabled) return; o.dev = b.dataset.v; saveOpts(); drawModels(); };
   $("#txGo").onclick = () => {
     if (tx.busy) { txCancel(); return; }
