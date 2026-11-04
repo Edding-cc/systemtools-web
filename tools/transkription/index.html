@@ -150,18 +150,28 @@ async function txCacheList() {
     const g = hf ? hf[1] : /onnxruntime/.test(req.url) ? "runtime" : "other";
     const res = await c.match(req);
     const size = +(res?.headers.get("content-length") || 0);
-    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [] }).size += size;
-    groups[g].reqs.push(req);
+    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [], files: {}, pfiles: {} }).size += size;
+    groups[g].reqs.push(req); groups[g].files[req.url] = size;
   }
   const pc = await caches.open(TX_PARTS);
   for (const req of await pc.keys()) {
     const hf = /huggingface\.co\/([^/]+\/[^/]+)\/resolve\//.exec(req.url);
     const g = hf ? hf[1] : "runtime";
     const res = /\?st-part=/.test(req.url) ? await pc.match(req) : null;
-    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [] }).part += +(res?.headers.get("content-length") || 0);
-    groups[g].preqs.push(req);
+    const n = +(res?.headers.get("content-length") || 0), base = req.url.split("?")[0];
+    (groups[g] ||= { size: 0, reqs: [], part: 0, preqs: [], files: {}, pfiles: {} }).part += n;
+    groups[g].preqs.push(req); groups[g].pfiles[base] = (groups[g].pfiles[base] || 0) + n;
   }
   return groups;
+}
+// Gespeicherte Varianten eines Modells: Prozessor und Grafikkarte nutzen verschiedene Encoder-/Decoder-Dateien
+function txVariants(m, g) {
+  const all = [["wasm", "Prozessor", txDtype(m, "wasm")], ["gpu16", "Grafikkarte", txDtype(m, "webgpu", true)], ["gpu32", "Grafikkarte", txDtype(m, "webgpu", false)]];
+  const has = u => g && (u in g.files || u in g.pfiles);
+  // Gelistet wird eine Variante, sobald eine nur ihr gehörende ONNX-Datei (ganz oder angefangen) da ist
+  const vs = all.filter(([k, , dt]) => txFiles(m, dt).some(u => has(u) && !all.some(([k2, , dt2]) => k2 !== k && txFiles(m, dt2).includes(u))));
+  const twoGpu = vs.filter(([k]) => k !== "wasm").length > 1;
+  return vs.map(([key, name, dt]) => ({ key, dt, name: twoGpu && key !== "wasm" ? `${name} (${/16/.test(dt.encoder_model) ? "16" : "32"} Bit)` : name }));
 }
 const txClock = (s, ms) => {
   const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, sec = Math.floor(s) % 60, p = n => String(n).padStart(2, "0");
@@ -473,7 +483,6 @@ function viewTranskription(app) {
   const modelFiles = (m, dt) => txAllFiles(m, dt).filter(u => !u.startsWith(TX_RUNTIME));
   // Fertig ist ein Modell erst, wenn alle seine Dateien für einen Rechenweg komplett im Speicher liegen
   const ready = (m, dt) => modelFiles(m, dt).every(u => keys.includes(u));
-  const readyAny = m => [txDtype(m, "wasm"), txDtype(m, "webgpu", true), txDtype(m, "webgpu", false)].some(dt => ready(m, dt));
   const begun = (m, dt) => txFiles(m, dt).some(u => keys.includes(u) || partial.includes(u));
   const effDev = () => o.dev === "auto" ? (tx.gpu ? "webgpu" : "wasm") : o.dev === "webgpu" && !tx.gpu ? "wasm" : o.dev;
   const saveOpts = () => store.set("tx.opts", o);
@@ -564,17 +573,20 @@ function viewTranskription(app) {
     const est = await navigator.storage?.estimate?.().catch(() => null);
     const persisted = await navigator.storage?.persisted?.().catch(() => null);
     const ids = Object.keys(groups).filter(g => g !== "runtime" && g !== "other");
-    const rows = ids.map(g => {
-      const m = TX_MODELS.find(x => x.id === g), { size, part } = groups[g];
-      let info = fmtBytes(size + part);
-      if (m && readyAny(m)) info = `<span class="badge ok">fertig</span> ${fmtBytes(size)}${part ? ` · dazu ${fmtBytes(part)} angefangen` : ""}`;
-      else if (m) info = `<span class="badge warn">nicht fertig</span> ${fmtBytes(size + part)} von ca. ${fmtBytes(Math.max(size + part, txSize(m, txDtype(m, effDev(), tx.gpu?.f16)) * 1e6))} geladen · geht beim nächsten Transkribieren mit diesem Modell weiter`;
-      return `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(m ? "Whisper " + m.name : g)}</b><small>${info}</small></div>
-        <button class="iconbtn" data-del="${esc(g)}" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`;
-    });
+    const trash = I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>');
+    const row = (title, info, del) => `<div class="list-item"><div class="grow"><b style="color:var(--text)">${esc(title)}</b><small>${info}</small></div>
+        <button class="iconbtn" data-del="${esc(del)}" aria-label="${esc(title)} löschen" ${tx.busy ? "disabled" : ""}>${trash}</button></div>`;
+    const rows = TX_MODELS.flatMap(m => txVariants(m, groups[m.id]).map(v => {
+      const g = groups[m.id], files = modelFiles(m, v.dt);
+      const bytes = files.reduce((s, u) => s + (g.files[u] || 0) + (g.pfiles[u] || 0), 0);
+      const info = files.every(u => u in g.files) ? `<span class="badge ok">fertig</span> ${fmtBytes(bytes)}`
+        : `<span class="badge warn">nicht fertig</span> ${fmtBytes(bytes)} von ca. ${fmtBytes(Math.max(bytes, txSize(m, v.dt) * 1e6))} geladen · geht beim nächsten Transkribieren mit Rechenweg „${v.name.replace(/ \(.*/, "")}“ weiter`;
+      return row(`Whisper ${m.name} · ${v.name}`, info, m.id + "|" + v.key);
+    }));
+    // Reste ohne erkennbare Variante (z. B. nur Konfigurationsdateien) trotzdem anzeigen und löschbar machen
+    for (const g of ids) if (!TX_MODELS.some(m => m.id === g && txVariants(m, groups[g]).length)) rows.push(row(TX_MODELS.find(m => m.id === g) ? `Whisper ${TX_MODELS.find(m => m.id === g).name} · Reste` : g, fmtBytes(groups[g].size + groups[g].part), g));
     const other = ["runtime", "other"].filter(g => groups[g]).reduce((s, g) => s + groups[g].size + groups[g].part, 0);
-    if (other) rows.push(`<div class="list-item"><div class="grow"><b style="color:var(--text)">Laufzeit (ONNX Runtime)</b><small>${fmtBytes(other)}</small></div>
-      <button class="iconbtn" data-del="runtime" aria-label="Löschen" ${tx.busy ? "disabled" : ""}>${I('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div>`);
+    if (other) rows.push(row("Laufzeit (ONNX Runtime)", fmtBytes(other), "runtime"));
     el.innerHTML = (rows.length ? rows.join("") : "<p style='margin:0'>Noch kein Modell gespeichert.</p>")
       + `<p style="margin:10px 0 0;font-size:13px">${est ? `Belegt ${fmtBytes(est.usage)} von ${fmtBytes(est.quota)} Kontingent. ` : ""}${persisted == null ? "" : persisted ? "Der Browser hält die Daten dauerhaft vor." : "Der Browser darf die Daten bei Speichermangel räumen. Als App installieren oder als Lesezeichen speichern hilft meist, dass sie bleiben."}</p>`;
   };
@@ -632,13 +644,21 @@ function viewTranskription(app) {
     else if (f === "clear" && confirm("Ergebnis löschen?")) { tx.chunks = []; tx.phase = ""; tx.error = ""; store.set("tx.last", { name: "", chunks: [], model: "" }); result(); status(); }
   };
   $("#txCache").onclick = async e => {
-    const g = e.target.closest("[data-del]")?.dataset.del; if (!g || tx.busy) return;
+    const [g, key] = e.target.closest("[data-del]")?.dataset.del?.split("|") || []; if (!g || tx.busy) return;
     const m = TX_MODELS.find(x => x.id === g);
-    if (!confirm(`${m ? "Whisper " + m.name : "Laufzeit"} vom Gerät löschen? Beim nächsten Mal wird es neu heruntergeladen.`)) return;
-    txKill(); // geladenes Modell aus dem Arbeitsspeicher werfen
     const groups = await txCacheList(), c = await caches.open(TX_CACHE), pc = await caches.open(TX_PARTS);
-    const sel = g === "runtime" ? [groups.runtime, groups.other] : [groups[g]];
-    await Promise.all(sel.filter(Boolean).flatMap(x => [...x.reqs.map(r => c.delete(r)), ...x.preqs.map(r => pc.delete(r))]));
+    const vs = m ? txVariants(m, groups[g]) : [], v = vs.find(x => x.key === key);
+    if (!confirm(`${m ? `Whisper ${m.name}${v ? " · " + v.name : ""}` : "Laufzeit"} vom Gerät löschen? Beim nächsten Mal wird es neu heruntergeladen.`)) return;
+    txKill(); // geladenes Modell aus dem Arbeitsspeicher werfen
+    const rm = x => [...x.reqs.map(r => c.delete(r)), ...x.preqs.map(r => pc.delete(r))];
+    if (g === "runtime") await Promise.all([groups.runtime, groups.other].filter(Boolean).flatMap(rm));
+    else if (!v || vs.length === 1) await Promise.all(groups[g] ? rm(groups[g]) : []); // letzte Variante: auch die gemeinsamen Dateien
+    else {
+      // Nur die Dateien dieser Variante, nicht was eine andere gespeicherte Variante noch braucht
+      const keep = vs.filter(x => x !== v).flatMap(x => txFiles(m, x.dt));
+      const del = txFiles(m, v.dt).filter(u => !keep.includes(u));
+      await Promise.all(rm({ reqs: groups[g].reqs.filter(r => del.includes(r.url)), preqs: groups[g].preqs.filter(r => del.includes(r.url.split("?")[0])) }));
+    }
     toast("Gelöscht"); cache();
   };
 
